@@ -1,0 +1,27 @@
+# Build artifacts
+/bin/
+/dist/
+*.exe
+
+# Test and coverage output
+*.test
+*.out
+coverage/
+testbin/
+test-results/
+
+# Local environment and secrets
+.env
+.env.*
+*.local.yaml
+!*.example
+
+# Editor and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Kubernetes local dev scratch
+/kind/
+*.kubeconfig
