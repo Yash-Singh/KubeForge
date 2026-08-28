@@ -12,8 +12,6 @@ import (
 	platformv1alpha1 "github.com/kubeforge/kube-forge/api/v1alpha1"
 )
 
-
-
 var _ = Describe("applicationLabels", func() {
 	It("should return the expected labels", func() {
 		app := &platformv1alpha1.Application{

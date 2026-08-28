@@ -130,7 +130,7 @@ func (r *ApplicationReconciler) updateStatus(ctx context.Context, app *platformv
 			app.Status.Phase = platformv1alpha1.PhaseProgressing
 			app.Status.DesiredReplicas = 0
 			app.Status.ReadyReplicas = 0
-			setCondition(app, platformv1alpha1.ConditionProgressing, metav1.ConditionTrue, "Reconciling", "Deployment not yet created")
+			setCondition(app, platformv1alpha1.ConditionProgressing, "Reconciling", "Deployment not yet created")
 		} else {
 			return err
 		}
@@ -140,16 +140,16 @@ func (r *ApplicationReconciler) updateStatus(ctx context.Context, app *platformv
 
 		if isDeploymentDegraded(dep) {
 			app.Status.Phase = platformv1alpha1.PhaseDegraded
-			setCondition(app, platformv1alpha1.ConditionDegraded, metav1.ConditionTrue, "DeploymentFailed", "Deployment has unavailable or failing replicas")
+			setCondition(app, platformv1alpha1.ConditionDegraded, "DeploymentFailed", "Deployment has unavailable or failing replicas")
 		} else if dep.Status.ReadyReplicas >= ptr.Deref(dep.Spec.Replicas, 1) {
 			app.Status.Phase = platformv1alpha1.PhaseReady
-			setCondition(app, platformv1alpha1.ConditionReady, metav1.ConditionTrue, "ResourcesReady", "Application resources are ready")
+			setCondition(app, platformv1alpha1.ConditionReady, "ResourcesReady", "Application resources are ready")
 		} else if dep.Status.ReadyReplicas > 0 {
 			app.Status.Phase = platformv1alpha1.PhaseProgressing
-			setCondition(app, platformv1alpha1.ConditionProgressing, metav1.ConditionTrue, "Scaling", "Waiting for all replicas to be ready")
+			setCondition(app, platformv1alpha1.ConditionProgressing, "Scaling", "Waiting for all replicas to be ready")
 		} else {
 			app.Status.Phase = platformv1alpha1.PhaseProgressing
-			setCondition(app, platformv1alpha1.ConditionProgressing, metav1.ConditionTrue, "Creating", "Waiting for first replica to become ready")
+			setCondition(app, platformv1alpha1.ConditionProgressing, "Creating", "Waiting for first replica to become ready")
 		}
 	}
 
@@ -161,12 +161,12 @@ func (r *ApplicationReconciler) updateStatus(ctx context.Context, app *platformv
 	return nil
 }
 
-func setCondition(app *platformv1alpha1.Application, condType string, status metav1.ConditionStatus, reason, message string) {
+func setCondition(app *platformv1alpha1.Application, condType string, reason, message string) {
 	now := metav1.Now()
 	for i, c := range app.Status.Conditions {
 		if c.Type == condType {
-			if c.Status != status || c.Reason != reason || c.Message != message {
-				app.Status.Conditions[i].Status = status
+			if c.Status != metav1.ConditionTrue || c.Reason != reason || c.Message != message {
+				app.Status.Conditions[i].Status = metav1.ConditionTrue
 				app.Status.Conditions[i].Reason = reason
 				app.Status.Conditions[i].Message = message
 				app.Status.Conditions[i].LastTransitionTime = now
@@ -177,7 +177,7 @@ func setCondition(app *platformv1alpha1.Application, condType string, status met
 	}
 	app.Status.Conditions = append(app.Status.Conditions, metav1.Condition{
 		Type:               condType,
-		Status:             status,
+		Status:             metav1.ConditionTrue,
 		Reason:             reason,
 		Message:            message,
 		LastTransitionTime: now,
