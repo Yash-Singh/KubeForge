@@ -32,3 +32,6 @@ test-results/
 *.test
 *.out
 coverage/
+
+# Documentation
+docs/devlog
