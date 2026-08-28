@@ -177,8 +177,8 @@ func newApplication() *platformv1alpha1.Application {
 			Namespace: namespace,
 		},
 		Spec: platformv1alpha1.ApplicationSpec{
-			Image:     "ghcr.io/example/checkout:v1.0.0",
-			Replicas:  int32Ptr(1),
+			Image:    "ghcr.io/example/checkout:v1.0.0",
+			Replicas: int32Ptr(1),
 		},
 	}
 }
