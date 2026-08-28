@@ -25,3 +25,10 @@ test-results/
 # Kubernetes local dev scratch
 /kind/
 *.kubeconfig
+
+# Kubebuilder / controller-runtime
+/bin/
+/testbin/
+*.test
+*.out
+coverage/
