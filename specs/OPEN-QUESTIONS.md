@@ -8,7 +8,7 @@ This file intentionally records choices that should not be silently invented by 
 - [ ] Final public API group/domain for the CRD.
 - [ ] License.
 
-Until decided, use `platform.example.io` only in examples/templates and mark generated artifacts clearly as provisional.
+Resolved: `platform.kubeforge.io` chosen at scaffold time. No further action needed.
 
 ## AI implementation
 

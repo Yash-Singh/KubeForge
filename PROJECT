@@ -3,17 +3,17 @@
 # and allow the plugins properly work.
 # More info: https://book.kubebuilder.io/reference/project-config.html
 cliVersion: 4.13.0
-domain: example.io
+domain: kubeforge.io
 layout:
 - go.kubebuilder.io/v4
-projectName: kb-scaffold
+projectName: kube-forge
 repo: github.com/kubeforge/kube-forge
 resources:
 - api:
     crdVersion: v1
     namespaced: true
   controller: true
-  domain: example.io
+  domain: kubeforge.io
   group: platform
   kind: Application
   path: github.com/kubeforge/kube-forge/api/v1alpha1

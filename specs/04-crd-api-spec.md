@@ -2,9 +2,7 @@
 
 ## API group
 
-**Placeholder:** `platform.example.io`
-
-This group is intentionally provisional until the public project name/domain is chosen.
+**Final:** `platform.kubeforge.io`
 
 ## Kind
 
@@ -25,7 +23,7 @@ The resource describes **application intent**, not every possible Kubernetes fie
 ## Initial API
 
 ```yaml
-apiVersion: platform.example.io/v1alpha1
+apiVersion: platform.kubeforge.io/v1alpha1
 kind: Application
 metadata:
   name: checkout

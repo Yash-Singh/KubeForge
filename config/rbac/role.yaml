@@ -5,7 +5,7 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
-  - platform.example.io
+  - platform.kubeforge.io
   resources:
   - applications
   verbs:
@@ -17,13 +17,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - platform.example.io
+  - platform.kubeforge.io
   resources:
   - applications/finalizers
   verbs:
   - update
 - apiGroups:
-  - platform.example.io
+  - platform.kubeforge.io
   resources:
   - applications/status
   verbs:
