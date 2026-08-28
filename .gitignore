@@ -33,5 +33,3 @@ test-results/
 *.out
 coverage/
 
-# Documentation
-docs/devlog

@@ -20,7 +20,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -47,12 +46,6 @@ var (
 	cfg       *rest.Config
 	k8sClient client.Client
 )
-
-func TestControllers(t *testing.T) {
-	RegisterFailHandler(Fail)
-
-	RunSpecs(t, "Controller Suite")
-}
 
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
