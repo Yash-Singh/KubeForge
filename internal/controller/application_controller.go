@@ -138,7 +138,10 @@ func (r *ApplicationReconciler) updateStatus(ctx context.Context, app *platformv
 		app.Status.DesiredReplicas = ptr.Deref(dep.Spec.Replicas, 0)
 		app.Status.ReadyReplicas = dep.Status.ReadyReplicas
 
-		if dep.Status.ReadyReplicas >= ptr.Deref(dep.Spec.Replicas, 1) {
+		if isDeploymentDegraded(dep) {
+			app.Status.Phase = platformv1alpha1.PhaseDegraded
+			setCondition(app, platformv1alpha1.ConditionDegraded, metav1.ConditionTrue, "DeploymentFailed", "Deployment has unavailable or failing replicas")
+		} else if dep.Status.ReadyReplicas >= ptr.Deref(dep.Spec.Replicas, 1) {
 			app.Status.Phase = platformv1alpha1.PhaseReady
 			setCondition(app, platformv1alpha1.ConditionReady, metav1.ConditionTrue, "ResourcesReady", "Application resources are ready")
 		} else if dep.Status.ReadyReplicas > 0 {
@@ -180,6 +183,18 @@ func setCondition(app *platformv1alpha1.Application, condType string, status met
 		LastTransitionTime: now,
 		ObservedGeneration: app.Generation,
 	})
+}
+
+func isDeploymentDegraded(dep *appsv1.Deployment) bool {
+	for _, c := range dep.Status.Conditions {
+		if c.Type == "Available" && c.Status == corev1.ConditionFalse {
+			return true
+		}
+		if c.Type == "Progressing" && c.Reason == "ProgressDeadlineExceeded" {
+			return true
+		}
+	}
+	return false
 }
 
 func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
