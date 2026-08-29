@@ -1,0 +1,12 @@
+apiVersion: v2
+name: platform-operator
+description: KubeForge Platform Operator - manages Application custom resources
+type: application
+version: 0.1.0
+appVersion: 0.1.0
+icon: https://raw.githubusercontent.com/kubeforge/kube-forge/main/docs/logo.png
+sources:
+  - https://github.com/kubeforge/kube-forge
+maintainers:
+  - name: KubeForge Team
+    url: https://github.com/kubeforge

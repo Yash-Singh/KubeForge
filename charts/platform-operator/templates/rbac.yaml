@@ -1,0 +1,114 @@
+# ClusterRole for Application CRD management
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "platform-operator.fullname" . }}-manager-role
+  labels:
+    {{- include "platform-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups: [""]
+  resources: [services]
+  verbs: [create, delete, get, list, patch, update, watch]
+- apiGroups: [apps]
+  resources: [deployments]
+  verbs: [create, delete, get, list, patch, update, watch]
+- apiGroups: [platform.kubeforge.io]
+  resources: [applications]
+  verbs: [create, delete, get, list, patch, update, watch]
+- apiGroups: [platform.kubeforge.io]
+  resources: [applications/finalizers]
+  verbs: [update]
+- apiGroups: [platform.kubeforge.io]
+  resources: [applications/status]
+  verbs: [get, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "platform-operator.fullname" . }}-manager-rolebinding
+  labels:
+    {{- include "platform-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "platform-operator.fullname" . }}-manager-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "platform-operator.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+---
+# Leader election Role (namespaced)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "platform-operator.fullname" . }}-leader-election-role
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "platform-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups: [""]
+  resources: [configmaps]
+  verbs: [get, list, watch, create, update, patch, delete]
+- apiGroups: [coordination.k8s.io]
+  resources: [leases]
+  verbs: [get, list, watch, create, update, patch, delete]
+- apiGroups: [""]
+  resources: [events]
+  verbs: [create, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "platform-operator.fullname" . }}-leader-election-rolebinding
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "platform-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "platform-operator.fullname" . }}-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "platform-operator.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+---
+# Metrics auth ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "platform-operator.fullname" . }}-metrics-auth-role
+  labels:
+    {{- include "platform-operator.labels" . | nindent 4 }}
+rules:
+- apiGroups: [authentication.k8s.io]
+  resources: [tokenreviews]
+  verbs: [create]
+- apiGroups: [authorization.k8s.io]
+  resources: [subjectaccessreviews]
+  verbs: [create]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "platform-operator.fullname" . }}-metrics-auth-rolebinding
+  labels:
+    {{- include "platform-operator.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "platform-operator.fullname" . }}-metrics-auth-role
+subjects:
+- kind: ServiceAccount
+  name: {{ include "platform-operator.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+---
+# Metrics reader ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "platform-operator.fullname" . }}-metrics-reader
+  labels:
+    {{- include "platform-operator.labels" . | nindent 4 }}
+rules:
+- nonResourceURLs: [/metrics]
+  verbs: [get]

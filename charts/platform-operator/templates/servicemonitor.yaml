@@ -1,0 +1,25 @@
+{{- if .Values.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "platform-operator.fullname" . }}-metrics-monitor
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "platform-operator.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  endpoints:
+    - path: {{ .Values.metrics.serviceMonitor.endpoint.path }}
+      port: {{ .Values.metrics.serviceMonitor.endpoint.port }}
+      scheme: {{ .Values.metrics.serviceMonitor.endpoint.scheme }}
+      bearerTokenFile: {{ .Values.metrics.serviceMonitor.endpoint.bearerTokenFile }}
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+      scrapeTimeout: {{ .Values.metrics.serviceMonitor.scrapeTimeout }}
+      tlsConfig:
+        insecureSkipVerify: {{ .Values.metrics.serviceMonitor.endpoint.insecureSkipVerify }}
+  selector:
+    matchLabels:
+      {{- include "platform-operator.selectorLabels" . | nindent 6 }}
+{{- end }}

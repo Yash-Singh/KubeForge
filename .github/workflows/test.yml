@@ -21,3 +21,21 @@ jobs:
         run: |
           go mod tidy
           make test
+
+  helm:
+    name: Helm Lint and Template
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: latest
+
+      - name: Helm Lint
+        run: make helm-lint
+
+      - name: Helm Template
+        run: make helm-template
