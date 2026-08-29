@@ -5,8 +5,47 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Run on Ubuntu
+  format:
+    name: Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Check formatting
+        run: |
+          go fmt ./...
+          if [ -n "$(git diff --stat)" ]; then
+            echo "Formatting differences found. Run 'go fmt ./...' locally and commit."
+            git diff
+            exit 1
+          fi
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Check linter configuration
+        run: make lint-config
+
+      - name: Run linter
+        run: make lint
+
+  unit-tests:
+    name: Unit Tests + envtest
     runs-on: ubuntu-latest
     steps:
       - name: Clone the code
@@ -18,9 +57,49 @@ jobs:
           go-version-file: go.mod
 
       - name: Running Tests
+        run: make test
+
+  manifest-verification:
+    name: Manifest Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Verify generated manifests
         run: |
-          go mod tidy
-          make test
+          make manifests generate
+          if [ -n "$(git diff --stat)" ]; then
+            echo "Generated files are out of date. Run 'make manifests generate' locally and commit."
+            git diff
+            exit 1
+          fi
+
+  crd-validation:
+    name: CRD Schema Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Verify CRD schemas
+        run: |
+          make manifests
+          if [ -n "$(git diff --stat config/crd/bases/)" ]; then
+            echo "CRD schemas are out of date. Run 'make manifests' locally and commit."
+            git diff config/crd/bases/
+            exit 1
+          fi
 
   helm:
     name: Helm Lint and Template
@@ -39,3 +118,40 @@ jobs:
 
       - name: Helm Template
         run: make helm-template
+
+  container-build:
+    name: Container Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        run: make docker-build
+
+  security-scan:
+    name: Security / Dependency Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Verify dependencies
+        run: |
+          go mod verify
+
+      - name: Run go vet
+        run: go vet ./...
+
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
