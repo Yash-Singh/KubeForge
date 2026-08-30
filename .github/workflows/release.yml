@@ -40,7 +40,6 @@ jobs:
             type=ref,event=tag
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=latest,enable=true
 
       - name: Build and push
         uses: docker/build-push-action@v5
