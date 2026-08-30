@@ -6,7 +6,7 @@ metadata:
 spec:
   description: KubeForge Platform Operator
   sourceRepos:
-    - https://github.com/kubeforge/kube-forge
+    - https://github.com/Yash-Singh/KubeForge
   destinations:
     - namespace: kubeforge-system
       server: https://kubernetes.default.svc

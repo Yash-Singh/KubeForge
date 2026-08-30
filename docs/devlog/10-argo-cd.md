@@ -16,7 +16,7 @@ Added Argo CD `AppProject` and `Application` manifests under `deploy/argocd/` to
 ### AppProject configuration
 
 - **Name**: `kubeforge`
-- **Source repos**: `https://github.com/kubeforge/kube-forge`
+- **Source repos**: `https://github.com/Yash-Singh/KubeForge`
 - **Destinations**: 
   - `kubeforge-system` namespace (primary, for Operator deployment)
   - `argocd` namespace (for the Application itself)
@@ -26,7 +26,7 @@ Added Argo CD `AppProject` and `Application` manifests under `deploy/argocd/` to
 ### Application configuration
 
 - **Project**: `kubeforge`
-- **Source**: GitHub repo `https://github.com/kubeforge/kube-forge`, path `charts/platform-operator`, Helm unstructured
+- **Source**: GitHub repo `https://github.com/Yash-Singh/KubeForge`, path `charts/platform-operator`, Helm unstructured
 - **Destination**: `https://kubernetes.default.svc`, namespace `kubeforge-system`
 - **Sync policy**: automated with `prune: true`, `selfHeal: true`, `CreateNamespace=true`, `ServerSideApply=true`
 - **revisionHistoryLimit**: 3

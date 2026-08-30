@@ -12,7 +12,7 @@ Created `.github/workflows/release.yml` for automated publishing of Docker image
 
 **What happens**:
 1. GitHub Actions builds the Docker image using the existing `Dockerfile`
-2. Image is pushed to `ghcr.io/kubeforge/kube-forge` with tags:
+2. Image is pushed to `ghcr.io/Yash-Singh/KubeForge` with tags:
    - `v0.1.0` (full semver from git tag)
    - `0.1` (major.minor)
    - `latest` (convenience tag, for local dev only)
@@ -23,7 +23,7 @@ Created `.github/workflows/release.yml` for automated publishing of Docker image
 
 | Rule | Detail |
 |---|---|
-| **Default registry** | `GHCR` (`ghcr.io/kubeforge/kube-forge`) |
+| **Default registry** | `GHCR` (`ghcr.io/Yash-Singh/KubeForge`) |
 | **Tagging** | Immutable release versions only (`v0.1.0`, `v0.2.0`, etc.) |
 | `latest` | Convenience tag only; must never be the deployment source for reproducible releases |
 | **Provenance** | Signed or provenance-attested releases deferred until tooling is stable |
@@ -52,7 +52,7 @@ The `release.yml` job is separate from `test.yml`:
 ### Verification
 
 - `release.yml` triggers on `git tag v0.1.0 && git push --tags`
-- Image appears at `ghcr.io/kubeforge/kube-forge:v0.1.0`
+- Image appears at `ghcr.io/Yash-Singh/KubeForge:v0.1.0`
 - `helm template` renders correctly with `image.tag: v0.1.0`
 - Argo CD Application syncs automatically after tag push
 

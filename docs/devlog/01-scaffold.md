@@ -10,7 +10,7 @@ Created the Kubebuilder/controller-runtime project for the `platform.kubeforge.i
 
 | Item | Path |
 |---|---|
-| Go module | `go.mod` (module `github.com/kubeforge/kube-forge`) |
+| Go module | `go.mod` (module `github.com/Yash-Singh/KubeForge`) |
 | Manager entrypoint | `cmd/main.go` — metrics (secure), health probes, leader election, webhook server, controller registration |
 | API types (stub) | `api/v1alpha1/application_types.go` — Application, ApplicationSpec, ApplicationStatus, ApplicationList |
 | Group/version registration | `api/v1alpha1/groupversion_info.go` |

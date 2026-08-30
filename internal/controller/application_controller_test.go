@@ -15,7 +15,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	platformv1alpha1 "github.com/kubeforge/kube-forge/api/v1alpha1"
+	platformv1alpha1 "github.com/Yash-Singh/KubeForge/api/v1alpha1"
 )
 
 const (

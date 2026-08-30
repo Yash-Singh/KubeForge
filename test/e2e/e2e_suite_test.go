@@ -28,7 +28,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/kubeforge/kube-forge/test/utils"
+	"github.com/Yash-Singh/KubeForge/test/utils"
 )
 
 var (

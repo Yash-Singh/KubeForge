@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	platformv1alpha1 "github.com/kubeforge/kube-forge/api/v1alpha1"
+	platformv1alpha1 "github.com/Yash-Singh/KubeForge/api/v1alpha1"
 )
 
 type ApplicationReconciler struct {
