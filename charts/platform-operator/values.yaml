@@ -9,7 +9,7 @@ fullnameOverride: ""
 
 image:
   repository: ghcr.io/yash-singh/kube-forge
-  tag: "v0.1.0"
+  tag: "v0.1.2"
   pullPolicy: IfNotPresent
 
 imagePullSecrets:
