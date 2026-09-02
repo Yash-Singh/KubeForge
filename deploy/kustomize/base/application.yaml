@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kubeforge-platform-operator
+  namespace: argocd
+spec:
+  project: kubeforge
+  source:
+    repoURL: https://github.com/Yash-Singh/KubeForge
+    targetRevision: main
+    path: charts/platform-operator
+    helm:
+      values: |
+        image:
+          tag: v0.1.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kubeforge-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+  revisionHistoryLimit: 3
