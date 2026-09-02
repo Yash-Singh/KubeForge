@@ -10,11 +10,13 @@ jobs:
     name: Release to GHCR
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
     steps:
       - name: Clone the code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -57,3 +59,24 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/user/packages/container/${{ github.repository_owner }}%2F${{ github.event.repository.name }}/visibility" \
             -d '{"visibility":"public"}'
+
+      - name: Generate release notes
+        id: release-notes
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            NOTES=$(git log --pretty=format:"- %s (%h)" --reverse)
+          else
+            NOTES=$(git log --pretty=format:"- %s (%h)" --reverse $PREV_TAG..HEAD)
+          fi
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          echo "$NOTES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body: ${{ steps.release-notes.outputs.notes }}
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
