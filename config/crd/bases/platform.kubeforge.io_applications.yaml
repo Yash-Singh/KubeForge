@@ -64,6 +64,165 @@ spec:
                 description: image is the container image reference for the primary
                   application container.
                 type: string
+              probes:
+                description: probes configures liveness and readiness probes for the
+                  primary container.
+                properties:
+                  liveness:
+                    description: liveness configures the liveness probe.
+                    properties:
+                      failureThreshold:
+                        default: 3
+                        description: |-
+                          failureThreshold is the number of consecutive failures before the probe is considered failed.
+                          Defaults to 3.
+                        format: int32
+                        type: integer
+                      httpGet:
+                        description: httpGet specifies the HTTP GET action to perform.
+                        properties:
+                          httpHeaders:
+                            description: httpHeaders are custom headers to set in
+                              the request.
+                            items:
+                              description: HTTPHeader represents an HTTP header.
+                              properties:
+                                name:
+                                  description: name of the header.
+                                  type: string
+                                value:
+                                  description: value of the header.
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          path:
+                            description: path is the HTTP path to GET.
+                            type: string
+                          port:
+                            description: port is the port number to connect to.
+                            format: int32
+                            maximum: 65535
+                            minimum: 1
+                            type: integer
+                          scheme:
+                            description: |-
+                              scheme is the HTTP scheme to use (HTTP or HTTPS).
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - path
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        default: 10
+                        description: |-
+                          initialDelaySeconds is the number of seconds after the container starts before the probe is initiated.
+                          Defaults to 10.
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        default: 10
+                        description: |-
+                          periodSeconds is how often to perform the probe.
+                          Defaults to 10.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        default: 1
+                        description: |-
+                          successThreshold is the number of consecutive successes before the probe is considered successful.
+                          Defaults to 1.
+                        format: int32
+                        type: integer
+                      timeoutSeconds:
+                        default: 1
+                        description: |-
+                          timeoutSeconds is the number of seconds after which the probe times out.
+                          Defaults to 1.
+                        format: int32
+                        type: integer
+                    type: object
+                  readiness:
+                    description: readiness configures the readiness probe.
+                    properties:
+                      failureThreshold:
+                        default: 3
+                        description: |-
+                          failureThreshold is the number of consecutive failures before the probe is considered failed.
+                          Defaults to 3.
+                        format: int32
+                        type: integer
+                      httpGet:
+                        description: httpGet specifies the HTTP GET action to perform.
+                        properties:
+                          httpHeaders:
+                            description: httpHeaders are custom headers to set in
+                              the request.
+                            items:
+                              description: HTTPHeader represents an HTTP header.
+                              properties:
+                                name:
+                                  description: name of the header.
+                                  type: string
+                                value:
+                                  description: value of the header.
+                                  type: string
+                              required:
+                              - name
+                              - value
+                              type: object
+                            type: array
+                          path:
+                            description: path is the HTTP path to GET.
+                            type: string
+                          port:
+                            description: port is the port number to connect to.
+                            format: int32
+                            maximum: 65535
+                            minimum: 1
+                            type: integer
+                          scheme:
+                            description: |-
+                              scheme is the HTTP scheme to use (HTTP or HTTPS).
+                              Defaults to HTTP.
+                            type: string
+                        required:
+                        - path
+                        - port
+                        type: object
+                      initialDelaySeconds:
+                        default: 10
+                        description: |-
+                          initialDelaySeconds is the number of seconds after the container starts before the probe is initiated.
+                          Defaults to 10.
+                        format: int32
+                        type: integer
+                      periodSeconds:
+                        default: 10
+                        description: |-
+                          periodSeconds is how often to perform the probe.
+                          Defaults to 10.
+                        format: int32
+                        type: integer
+                      successThreshold:
+                        default: 1
+                        description: |-
+                          successThreshold is the number of consecutive successes before the probe is considered successful.
+                          Defaults to 1.
+                        format: int32
+                        type: integer
+                      timeoutSeconds:
+                        default: 1
+                        description: |-
+                          timeoutSeconds is the number of seconds after which the probe times out.
+                          Defaults to 1.
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
               replicas:
                 default: 1
                 description: |-

@@ -47,6 +47,92 @@ type ApplicationSpec struct {
 	// Secret references are deferred — only name/value pairs are supported.
 	// +optional
 	Env []EnvVar `json:"env,omitempty"`
+
+	// probes configures liveness and readiness probes for the primary container.
+	// +optional
+	Probes *ProbesSpec `json:"probes,omitempty"`
+}
+
+// ProbesSpec defines liveness and readiness probe configuration.
+type ProbesSpec struct {
+	// liveness configures the liveness probe.
+	// +optional
+	Liveness *ProbeSpec `json:"liveness,omitempty"`
+
+	// readiness configures the readiness probe.
+	// +optional
+	Readiness *ProbeSpec `json:"readiness,omitempty"`
+}
+
+// ProbeSpec defines a container probe.
+// Defaults match Kubernetes defaults when not specified.
+type ProbeSpec struct {
+	// httpGet specifies the HTTP GET action to perform.
+	// +optional
+	HTTPGet *HTTPGetAction `json:"httpGet,omitempty"`
+
+	// initialDelaySeconds is the number of seconds after the container starts before the probe is initiated.
+	// Defaults to 10.
+	// +optional
+	// +kubebuilder:default=10
+	InitialDelaySeconds *int32 `json:"initialDelaySeconds,omitempty"`
+
+	// periodSeconds is how often to perform the probe.
+	// Defaults to 10.
+	// +optional
+	// +kubebuilder:default=10
+	PeriodSeconds *int32 `json:"periodSeconds,omitempty"`
+
+	// timeoutSeconds is the number of seconds after which the probe times out.
+	// Defaults to 1.
+	// +optional
+	// +kubebuilder:default=1
+	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
+
+	// failureThreshold is the number of consecutive failures before the probe is considered failed.
+	// Defaults to 3.
+	// +optional
+	// +kubebuilder:default=3
+	FailureThreshold *int32 `json:"failureThreshold,omitempty"`
+
+	// successThreshold is the number of consecutive successes before the probe is considered successful.
+	// Defaults to 1.
+	// +optional
+	// +kubebuilder:default=1
+	SuccessThreshold *int32 `json:"successThreshold,omitempty"`
+}
+
+// HTTPGetAction specifies an HTTP GET action for a probe.
+type HTTPGetAction struct {
+	// path is the HTTP path to GET.
+	// +required
+	Path string `json:"path"`
+
+	// port is the port number to connect to.
+	// +required
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port"`
+
+	// scheme is the HTTP scheme to use (HTTP or HTTPS).
+	// Defaults to HTTP.
+	// +optional
+	Scheme corev1.URIScheme `json:"scheme,omitempty"`
+
+	// httpHeaders are custom headers to set in the request.
+	// +optional
+	HTTPHeaders []HTTPHeader `json:"httpHeaders,omitempty"`
+}
+
+// HTTPHeader represents an HTTP header.
+type HTTPHeader struct {
+	// name of the header.
+	// +required
+	Name string `json:"name"`
+
+	// value of the header.
+	// +required
+	Value string `json:"value"`
 }
 
 // ServiceSpec describes the Service to create for the Application.

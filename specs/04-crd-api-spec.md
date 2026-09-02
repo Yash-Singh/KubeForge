@@ -44,6 +44,19 @@ spec:
   env:
     - name: LOG_LEVEL
       value: info
+  probes:
+    liveness:
+      httpGet:
+        path: /healthz
+        port: 8080
+      initialDelaySeconds: 15
+      periodSeconds: 20
+    readiness:
+      httpGet:
+        path: /readyz
+        port: 8080
+      initialDelaySeconds: 5
+      periodSeconds: 10
 ```
 
 ## Initial `spec`
@@ -67,9 +80,38 @@ Scaling integrations must define whether this field remains authoritative when a
 
 Requests and limits for the primary container.
 
+When omitted, the operator applies sensible defaults:
+- Requests: CPU 10m, Memory 64Mi
+- Limits: CPU 500m, Memory 128Mi
+
+These defaults are applied only when no resources are specified in the spec.
+
 ### `env` — optional
 
 Non-secret environment variables only. Secret references are deferred until a secure secret reference contract is designed.
+
+### `probes` — optional
+
+Liveness and readiness probe configuration for the primary container.
+
+- `liveness` — optional. Configures the liveness probe.
+- `readiness` — optional. Configures the readiness probe.
+
+Each probe supports:
+
+- `httpGet` — optional. HTTP GET action to perform.
+  - `path` — required. HTTP path to GET.
+  - `port` — required. Port number to connect to.
+  - `scheme` — optional. HTTP or HTTPS (default: HTTP).
+  - `httpHeaders` — optional. Custom headers.
+
+- `initialDelaySeconds` — optional. Seconds after container start before probe initiates (default: 10).
+- `periodSeconds` — optional. How often to perform the probe (default: 10).
+- `timeoutSeconds` — optional. Probe timeout in seconds (default: 1).
+- `failureThreshold` — optional. Consecutive failures before probe fails (default: 3).
+- `successThreshold` — optional. Consecutive successes before probe succeeds (default: 1).
+
+When `probes` is omitted, no probes are configured. When present but fields omitted, Kubernetes defaults apply.
 
 ## Explicitly deferred fields
 

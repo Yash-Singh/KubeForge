@@ -3,7 +3,9 @@ package controller
 import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	platformv1alpha1 "github.com/Yash-Singh/KubeForge/api/v1alpha1"
 )
@@ -12,6 +14,11 @@ const (
 	managedByLabel = "app.kubernetes.io/managed-by"
 	managedByValue = "kubeforge-operator"
 	nameLabel      = "app.kubernetes.io/name"
+
+	defaultCPURequest    = "10m"
+	defaultMemoryRequest = "64Mi"
+	defaultCPULimit      = "500m"
+	defaultMemoryLimit   = "128Mi"
 )
 
 func applicationLabels(app *platformv1alpha1.Application) map[string]string {
@@ -46,15 +53,75 @@ func desiredDeploymentSpec(app *platformv1alpha1.Application, replicas int32) ap
 		},
 	}
 
+	container := &spec.Template.Spec.Containers[0]
+
 	if app.Spec.Resources != nil {
-		spec.Template.Spec.Containers[0].Resources = *app.Spec.Resources
+		container.Resources = *app.Spec.Resources
+	} else {
+		container.Resources = corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(defaultCPURequest),
+				corev1.ResourceMemory: resource.MustParse(defaultMemoryRequest),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse(defaultCPULimit),
+				corev1.ResourceMemory: resource.MustParse(defaultMemoryLimit),
+			},
+		}
 	}
 
 	if len(app.Spec.Env) > 0 {
-		spec.Template.Spec.Containers[0].Env = convertEnvVars(app.Spec.Env)
+		container.Env = convertEnvVars(app.Spec.Env)
+	}
+
+	if app.Spec.Probes != nil {
+		if app.Spec.Probes.Liveness != nil {
+			container.LivenessProbe = buildProbe(app.Spec.Probes.Liveness)
+		}
+		if app.Spec.Probes.Readiness != nil {
+			container.ReadinessProbe = buildProbe(app.Spec.Probes.Readiness)
+		}
 	}
 
 	return spec
+}
+
+func buildProbe(p *platformv1alpha1.ProbeSpec) *corev1.Probe {
+	probe := &corev1.Probe{
+		InitialDelaySeconds: getOrDefault(p.InitialDelaySeconds, 10),
+		PeriodSeconds:       getOrDefault(p.PeriodSeconds, 10),
+		TimeoutSeconds:      getOrDefault(p.TimeoutSeconds, 1),
+		FailureThreshold:    getOrDefault(p.FailureThreshold, 3),
+		SuccessThreshold:    getOrDefault(p.SuccessThreshold, 1),
+	}
+
+	if p.HTTPGet != nil {
+		probe.ProbeHandler = corev1.ProbeHandler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path: p.HTTPGet.Path,
+				Port: intstr.IntOrString{
+					Type:   intstr.Int,
+					IntVal: p.HTTPGet.Port,
+				},
+				Scheme: p.HTTPGet.Scheme,
+			},
+		}
+		if len(p.HTTPGet.HTTPHeaders) > 0 {
+			probe.HTTPGet.HTTPHeaders = make([]corev1.HTTPHeader, len(p.HTTPGet.HTTPHeaders))
+			for i, h := range p.HTTPGet.HTTPHeaders {
+				probe.HTTPGet.HTTPHeaders[i] = corev1.HTTPHeader{Name: h.Name, Value: h.Value}
+			}
+		}
+	}
+
+	return probe
+}
+
+func getOrDefault(ptr *int32, def int32) int32 {
+	if ptr != nil {
+		return *ptr
+	}
+	return def
 }
 
 func convertEnvVars(env []platformv1alpha1.EnvVar) []corev1.EnvVar {
