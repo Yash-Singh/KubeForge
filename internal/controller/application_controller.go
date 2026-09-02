@@ -6,6 +6,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -29,6 +30,7 @@ type ApplicationReconciler struct {
 // +kubebuilder:rbac:groups=platform.kubeforge.io,resources=applications/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=policy,resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
 
 func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	logger := logf.FromContext(ctx)
@@ -48,6 +50,11 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	if err := r.reconcileDeployment(ctx, app, *replicas); err != nil {
 		logger.Error(err, "Failed to reconcile Deployment")
+		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcilePodDisruptionBudget(ctx, app); err != nil {
+		logger.Error(err, "Failed to reconcile PodDisruptionBudget")
 		return ctrl.Result{}, err
 	}
 
@@ -79,6 +86,21 @@ func (r *ApplicationReconciler) reconcileDeployment(ctx context.Context, app *pl
 			return fmt.Errorf("setting owner reference: %w", err)
 		}
 		dep.Spec = desiredDeploymentSpec(app, replicas)
+		return nil
+	})
+	return err
+}
+
+func (r *ApplicationReconciler) reconcilePodDisruptionBudget(ctx context.Context, app *platformv1alpha1.Application) error {
+	pdb := desiredPodDisruptionBudget(app)
+	if pdb == nil {
+		return nil
+	}
+
+	_, err := controllerutil.CreateOrPatch(ctx, r.Client, pdb, func() error {
+		if err := controllerutil.SetControllerReference(app, pdb, r.Scheme); err != nil {
+			return fmt.Errorf("setting owner reference: %w", err)
+		}
 		return nil
 	})
 	return err
@@ -202,6 +224,7 @@ func (r *ApplicationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&platformv1alpha1.Application{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
+		Owns(&policyv1.PodDisruptionBudget{}).
 		Named("application").
 		Complete(r)
 }

@@ -64,6 +64,27 @@ spec:
                 description: image is the container image reference for the primary
                   application container.
                 type: string
+              podDisruptionBudget:
+                description: podDisruptionBudget configures a PodDisruptionBudget
+                  for high availability.
+                properties:
+                  maxUnavailable:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: |-
+                      maxUnavailable specifies the maximum number of pods that can be unavailable.
+                      Can be an absolute number or percentage (e.g., "25%").
+                    x-kubernetes-int-or-string: true
+                  minAvailable:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: |-
+                      minAvailable specifies the minimum number of pods that must be available.
+                      Can be an absolute number or percentage (e.g., "50%").
+                    x-kubernetes-int-or-string: true
+                type: object
               probes:
                 description: probes configures liveness and readiness probes for the
                   primary container.
@@ -311,6 +332,81 @@ spec:
                 required:
                 - port
                 type: object
+              topologySpreadConstraints:
+                description: topologySpreadConstraints configures topology spread
+                  constraints for the pods.
+                items:
+                  description: TopologySpreadConstraint defines a topology spread
+                    constraint.
+                  properties:
+                    labelSelector:
+                      description: |-
+                        labelSelector is used to find matching pods.
+                        If not specified, the Application's managed labels are used.
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: |-
+                              A label selector requirement is a selector that contains values, a key, and an operator that
+                              relates the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: |-
+                                  operator represents a key's relationship to a set of values.
+                                  Valid operators are In, NotIn, Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: |-
+                                  values is an array of string values. If the operator is In or NotIn,
+                                  the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                  the values array must be empty. This array is replaced during a strategic
+                                  merge patch.
+                                items:
+                                  type: string
+                                type: array
+                                x-kubernetes-list-type: atomic
+                            required:
+                            - key
+                            - operator
+                            type: object
+                          type: array
+                          x-kubernetes-list-type: atomic
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                            map is equivalent to an element of matchExpressions, whose key field is "key", the
+                            operator is "In", and the values array contains only "value". The requirements are ANDed.
+                          type: object
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    maxSkew:
+                      description: maxSkew describes the degree to which pods may
+                        be unevenly distributed.
+                      format: int32
+                      minimum: 1
+                      type: integer
+                    topologyKey:
+                      description: topologyKey is the key of node labels.
+                      type: string
+                    whenUnsatisfiable:
+                      default: DoNotSchedule
+                      description: |-
+                        whenUnsatisfiable indicates how to deal with a pod if it doesn't satisfy the spread constraint.
+                        Options: DoNotSchedule (default), ScheduleAnyway.
+                      type: string
+                  required:
+                  - maxSkew
+                  - topologyKey
+                  type: object
+                type: array
             required:
             - image
             type: object

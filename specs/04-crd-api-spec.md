@@ -30,7 +30,7 @@ metadata:
   namespace: apps
 spec:
   image: ghcr.io/example/checkout:v1.0.0
-  replicas: 2
+  replicas: 3
   service:
     port: 8080
     targetPort: 8080
@@ -57,6 +57,12 @@ spec:
         port: 8080
       initialDelaySeconds: 5
       periodSeconds: 10
+  podDisruptionBudget:
+    minAvailable: "50%"
+  topologySpreadConstraints:
+    - maxSkew: 1
+      topologyKey: topology.kubernetes.io/zone
+      whenUnsatisfiable: DoNotSchedule
 ```
 
 ## Initial `spec`
@@ -112,6 +118,28 @@ Each probe supports:
 - `successThreshold` — optional. Consecutive successes before probe succeeds (default: 1).
 
 When `probes` is omitted, no probes are configured. When present but fields omitted, Kubernetes defaults apply.
+
+### `podDisruptionBudget` — optional
+
+Configures a PodDisruptionBudget for high availability during voluntary disruptions (node drains, upgrades).
+
+- `minAvailable` — optional. Minimum pods that must be available (absolute or percentage, e.g., "50%").
+- `maxUnavailable` — optional. Maximum pods that can be unavailable (absolute or percentage, e.g., "25%").
+
+Only one of `minAvailable` or `maxUnavailable` should be specified. When omitted, no PDB is created.
+
+### `topologySpreadConstraints` — optional
+
+Array of topology spread constraints to distribute pods across failure domains.
+
+Each constraint:
+
+- `maxSkew` — required. Maximum allowed difference in pod count between topology domains.
+- `topologyKey` — required. Node label key for topology domain (e.g., `topology.kubernetes.io/zone`, `kubernetes.io/hostname`).
+- `whenUnsatisfiable` — optional. Behavior when constraint can't be satisfied: `DoNotSchedule` (default) or `ScheduleAnyway`.
+- `labelSelector` — optional. Pods to include in spread calculation. Defaults to Application-managed labels.
+
+When omitted, no topology spread constraints are applied.
 
 ## Explicitly deferred fields
 
@@ -169,8 +197,9 @@ Initial owned resources:
 
 - Deployment.
 - Service when `spec.service` is present.
+- PodDisruptionBudget when `spec.podDisruptionBudget` is present.
 
-Future optional resources may include PDB, HPA/KEDA, NetworkPolicy, ServiceMonitor, or Argo Rollout, each behind explicit feature/API fields.
+Future optional resources may include HPA/KEDA, NetworkPolicy, ServiceMonitor, or Argo Rollout, each behind explicit feature/API fields.
 
 ## CLI examples
 

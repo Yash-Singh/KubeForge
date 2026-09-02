@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -51,6 +52,50 @@ type ApplicationSpec struct {
 	// probes configures liveness and readiness probes for the primary container.
 	// +optional
 	Probes *ProbesSpec `json:"probes,omitempty"`
+
+	// podDisruptionBudget configures a PodDisruptionBudget for high availability.
+	// +optional
+	PodDisruptionBudget *PodDisruptionBudgetSpec `json:"podDisruptionBudget,omitempty"`
+
+	// topologySpreadConstraints configures topology spread constraints for the pods.
+	// +optional
+	TopologySpreadConstraints []TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+}
+
+// PodDisruptionBudgetSpec defines the PodDisruptionBudget configuration.
+type PodDisruptionBudgetSpec struct {
+	// minAvailable specifies the minimum number of pods that must be available.
+	// Can be an absolute number or percentage (e.g., "50%").
+	// +optional
+	MinAvailable *intstr.IntOrString `json:"minAvailable,omitempty"`
+
+	// maxUnavailable specifies the maximum number of pods that can be unavailable.
+	// Can be an absolute number or percentage (e.g., "25%").
+	// +optional
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+}
+
+// TopologySpreadConstraint defines a topology spread constraint.
+type TopologySpreadConstraint struct {
+	// maxSkew describes the degree to which pods may be unevenly distributed.
+	// +required
+	// +kubebuilder:validation:Minimum=1
+	MaxSkew int32 `json:"maxSkew"`
+
+	// topologyKey is the key of node labels.
+	// +required
+	TopologyKey string `json:"topologyKey"`
+
+	// whenUnsatisfiable indicates how to deal with a pod if it doesn't satisfy the spread constraint.
+	// Options: DoNotSchedule (default), ScheduleAnyway.
+	// +optional
+	// +kubebuilder:default=DoNotSchedule
+	WhenUnsatisfiable corev1.UnsatisfiableConstraintAction `json:"whenUnsatisfiable,omitempty"`
+
+	// labelSelector is used to find matching pods.
+	// If not specified, the Application's managed labels are used.
+	// +optional
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
 }
 
 // ProbesSpec defines liveness and readiness probe configuration.
