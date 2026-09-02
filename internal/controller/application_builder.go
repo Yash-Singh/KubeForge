@@ -3,6 +3,7 @@ package controller
 import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -172,6 +173,126 @@ func getOrDefaultUnsatisfiable(action corev1.UnsatisfiableConstraintAction) core
 		return corev1.DoNotSchedule
 	}
 	return action
+}
+
+func desiredNetworkPolicy(app *platformv1alpha1.Application) *networkingv1.NetworkPolicy {
+	if app.Spec.NetworkPolicy == nil {
+		return nil
+	}
+
+	npSpec := app.Spec.NetworkPolicy
+
+	np := &networkingv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      app.Name,
+			Namespace: app.Namespace,
+			Labels:    applicationLabels(app),
+		},
+		Spec: networkingv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					nameLabel: app.Name,
+				},
+			},
+		},
+	}
+
+	// Determine policy types
+	policyTypes := []networkingv1.PolicyType{}
+	hasIngress := len(npSpec.Ingress) > 0
+	hasEgress := len(npSpec.Egress) > 0
+
+	if len(npSpec.PolicyTypes) > 0 {
+		for _, pt := range npSpec.PolicyTypes {
+			policyTypes = append(policyTypes, networkingv1.PolicyType(pt))
+		}
+	} else {
+		if hasIngress {
+			policyTypes = append(policyTypes, networkingv1.PolicyTypeIngress)
+		}
+		if hasEgress {
+			policyTypes = append(policyTypes, networkingv1.PolicyTypeEgress)
+		}
+	}
+	np.Spec.PolicyTypes = policyTypes
+
+	// Build ingress rules
+	if hasIngress {
+		np.Spec.Ingress = buildNetworkPolicyIngress(npSpec.Ingress)
+	}
+
+	// Build egress rules
+	if hasEgress {
+		np.Spec.Egress = buildNetworkPolicyEgress(npSpec.Egress)
+	}
+
+	return np
+}
+
+func buildNetworkPolicyIngress(rules []platformv1alpha1.NetworkPolicyIngressRule) []networkingv1.NetworkPolicyIngressRule {
+	result := make([]networkingv1.NetworkPolicyIngressRule, len(rules))
+	for i, rule := range rules {
+		result[i] = networkingv1.NetworkPolicyIngressRule{
+			Ports: buildNetworkPolicyPorts(rule.Ports),
+			From:  buildNetworkPolicyPeers(rule.From),
+		}
+	}
+	return result
+}
+
+func buildNetworkPolicyEgress(rules []platformv1alpha1.NetworkPolicyEgressRule) []networkingv1.NetworkPolicyEgressRule {
+	result := make([]networkingv1.NetworkPolicyEgressRule, len(rules))
+	for i, rule := range rules {
+		result[i] = networkingv1.NetworkPolicyEgressRule{
+			Ports: buildNetworkPolicyPorts(rule.Ports),
+			To:    buildNetworkPolicyPeers(rule.To),
+		}
+	}
+	return result
+}
+
+func buildNetworkPolicyPorts(ports []platformv1alpha1.NetworkPolicyPort) []networkingv1.NetworkPolicyPort {
+	if len(ports) == 0 {
+		return nil
+	}
+	result := make([]networkingv1.NetworkPolicyPort, len(ports))
+	for i, p := range ports {
+		np := networkingv1.NetworkPolicyPort{}
+		if p.Protocol != nil {
+			np.Protocol = p.Protocol
+		}
+		if p.Port != nil {
+			np.Port = p.Port
+		}
+		if p.EndPort != nil {
+			np.EndPort = p.EndPort
+		}
+		result[i] = np
+	}
+	return result
+}
+
+func buildNetworkPolicyPeers(peers []platformv1alpha1.NetworkPolicyPeer) []networkingv1.NetworkPolicyPeer {
+	if len(peers) == 0 {
+		return nil
+	}
+	result := make([]networkingv1.NetworkPolicyPeer, len(peers))
+	for i, peer := range peers {
+		result[i] = networkingv1.NetworkPolicyPeer{}
+		if peer.PodSelector != nil {
+			result[i].PodSelector = peer.PodSelector
+		}
+		if peer.NamespaceSelector != nil {
+			result[i].NamespaceSelector = peer.NamespaceSelector
+		}
+		if peer.IPBlock != nil {
+			result[i].IPBlock = &networkingv1.IPBlock{
+				CIDR:   peer.IPBlock.CIDR,
+				Except: peer.IPBlock.Except,
+			}
+		}
+	}
+	return result
 }
 
 func getOrDefault(ptr *int32, def int32) int32 {

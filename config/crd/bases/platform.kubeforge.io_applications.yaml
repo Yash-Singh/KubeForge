@@ -64,6 +64,312 @@ spec:
                 description: image is the container image reference for the primary
                   application container.
                 type: string
+              networkPolicy:
+                description: networkPolicy configures NetworkPolicy for the application
+                  pods.
+                properties:
+                  egress:
+                    description: egress defines allowed egress traffic from the application
+                      pods.
+                    items:
+                      description: NetworkPolicyEgressRule defines an egress rule
+                        for NetworkPolicy.
+                      properties:
+                        ports:
+                          description: ports specifies the ports to allow.
+                          items:
+                            description: NetworkPolicyPort defines a port for NetworkPolicy.
+                            properties:
+                              endPort:
+                                description: endPort is the end of a port range.
+                                format: int32
+                                type: integer
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: port is the port number or name.
+                                x-kubernetes-int-or-string: true
+                              protocol:
+                                description: protocol is the protocol (TCP, UDP, SCTP).
+                                type: string
+                            type: object
+                          type: array
+                        to:
+                          description: to specifies the destinations the pods can
+                            access.
+                          items:
+                            description: NetworkPolicyPeer defines a peer for NetworkPolicy
+                              ingress/egress.
+                            properties:
+                              ipBlock:
+                                description: ipBlock selects IP blocks (CIDR).
+                                properties:
+                                  cidr:
+                                    description: cidr is the CIDR range.
+                                    type: string
+                                  except:
+                                    description: except specifies CIDR ranges to exclude.
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - cidr
+                                type: object
+                              namespaceSelector:
+                                description: namespaceSelector selects namespaces.
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: |-
+                                        A label selector requirement is a selector that contains values, a key, and an operator that
+                                        relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
+                                          type: string
+                                        operator:
+                                          description: |-
+                                            operator represents a key's relationship to a set of values.
+                                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: |-
+                                            values is an array of string values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array is replaced during a strategic
+                                            merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: |-
+                                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                    type: object
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              podSelector:
+                                description: podSelector selects pods in the same
+                                  namespace.
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: |-
+                                        A label selector requirement is a selector that contains values, a key, and an operator that
+                                        relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
+                                          type: string
+                                        operator:
+                                          description: |-
+                                            operator represents a key's relationship to a set of values.
+                                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: |-
+                                            values is an array of string values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array is replaced during a strategic
+                                            merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: |-
+                                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                    type: object
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            type: object
+                          type: array
+                      type: object
+                    type: array
+                  ingress:
+                    description: ingress defines allowed ingress traffic to the application
+                      pods.
+                    items:
+                      description: NetworkPolicyIngressRule defines an ingress rule
+                        for NetworkPolicy.
+                      properties:
+                        from:
+                          description: from specifies the sources allowed to access
+                            the pods.
+                          items:
+                            description: NetworkPolicyPeer defines a peer for NetworkPolicy
+                              ingress/egress.
+                            properties:
+                              ipBlock:
+                                description: ipBlock selects IP blocks (CIDR).
+                                properties:
+                                  cidr:
+                                    description: cidr is the CIDR range.
+                                    type: string
+                                  except:
+                                    description: except specifies CIDR ranges to exclude.
+                                    items:
+                                      type: string
+                                    type: array
+                                required:
+                                - cidr
+                                type: object
+                              namespaceSelector:
+                                description: namespaceSelector selects namespaces.
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: |-
+                                        A label selector requirement is a selector that contains values, a key, and an operator that
+                                        relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
+                                          type: string
+                                        operator:
+                                          description: |-
+                                            operator represents a key's relationship to a set of values.
+                                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: |-
+                                            values is an array of string values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array is replaced during a strategic
+                                            merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: |-
+                                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                    type: object
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              podSelector:
+                                description: podSelector selects pods in the same
+                                  namespace.
+                                properties:
+                                  matchExpressions:
+                                    description: matchExpressions is a list of label
+                                      selector requirements. The requirements are
+                                      ANDed.
+                                    items:
+                                      description: |-
+                                        A label selector requirement is a selector that contains values, a key, and an operator that
+                                        relates the key and values.
+                                      properties:
+                                        key:
+                                          description: key is the label key that the
+                                            selector applies to.
+                                          type: string
+                                        operator:
+                                          description: |-
+                                            operator represents a key's relationship to a set of values.
+                                            Valid operators are In, NotIn, Exists and DoesNotExist.
+                                          type: string
+                                        values:
+                                          description: |-
+                                            values is an array of string values. If the operator is In or NotIn,
+                                            the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                            the values array must be empty. This array is replaced during a strategic
+                                            merge patch.
+                                          items:
+                                            type: string
+                                          type: array
+                                          x-kubernetes-list-type: atomic
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-type: atomic
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    description: |-
+                                      matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                                      map is equivalent to an element of matchExpressions, whose key field is "key", the
+                                      operator is "In", and the values array contains only "value". The requirements are ANDed.
+                                    type: object
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            type: object
+                          type: array
+                        ports:
+                          description: ports specifies the ports to allow.
+                          items:
+                            description: NetworkPolicyPort defines a port for NetworkPolicy.
+                            properties:
+                              endPort:
+                                description: endPort is the end of a port range.
+                                format: int32
+                                type: integer
+                              port:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                description: port is the port number or name.
+                                x-kubernetes-int-or-string: true
+                              protocol:
+                                description: protocol is the protocol (TCP, UDP, SCTP).
+                                type: string
+                            type: object
+                          type: array
+                      type: object
+                    type: array
+                  policyTypes:
+                    description: |-
+                      policyTypes specifies the types of policies to apply.
+                      Valid values: "Ingress", "Egress". Defaults to ["Ingress"] if only ingress defined, ["Egress"] if only egress defined, or both if both defined.
+                    items:
+                      type: string
+                    type: array
+                type: object
               podDisruptionBudget:
                 description: podDisruptionBudget configures a PodDisruptionBudget
                   for high availability.

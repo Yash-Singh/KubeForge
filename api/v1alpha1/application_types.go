@@ -60,6 +60,10 @@ type ApplicationSpec struct {
 	// topologySpreadConstraints configures topology spread constraints for the pods.
 	// +optional
 	TopologySpreadConstraints []TopologySpreadConstraint `json:"topologySpreadConstraints,omitempty"`
+
+	// networkPolicy configures NetworkPolicy for the application pods.
+	// +optional
+	NetworkPolicy *NetworkPolicySpec `json:"networkPolicy,omitempty"`
 }
 
 // PodDisruptionBudgetSpec defines the PodDisruptionBudget configuration.
@@ -96,6 +100,85 @@ type TopologySpreadConstraint struct {
 	// If not specified, the Application's managed labels are used.
 	// +optional
 	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
+}
+
+// NetworkPolicySpec defines NetworkPolicy configuration for the application.
+type NetworkPolicySpec struct {
+	// ingress defines allowed ingress traffic to the application pods.
+	// +optional
+	Ingress []NetworkPolicyIngressRule `json:"ingress,omitempty"`
+
+	// egress defines allowed egress traffic from the application pods.
+	// +optional
+	Egress []NetworkPolicyEgressRule `json:"egress,omitempty"`
+
+	// policyTypes specifies the types of policies to apply.
+	// Valid values: "Ingress", "Egress". Defaults to ["Ingress"] if only ingress defined, ["Egress"] if only egress defined, or both if both defined.
+	// +optional
+	PolicyTypes []string `json:"policyTypes,omitempty"`
+}
+
+// NetworkPolicyIngressRule defines an ingress rule for NetworkPolicy.
+type NetworkPolicyIngressRule struct {
+	// ports specifies the ports to allow.
+	// +optional
+	Ports []NetworkPolicyPort `json:"ports,omitempty"`
+
+	// from specifies the sources allowed to access the pods.
+	// +optional
+	From []NetworkPolicyPeer `json:"from,omitempty"`
+}
+
+// NetworkPolicyEgressRule defines an egress rule for NetworkPolicy.
+type NetworkPolicyEgressRule struct {
+	// ports specifies the ports to allow.
+	// +optional
+	Ports []NetworkPolicyPort `json:"ports,omitempty"`
+
+	// to specifies the destinations the pods can access.
+	// +optional
+	To []NetworkPolicyPeer `json:"to,omitempty"`
+}
+
+// NetworkPolicyPort defines a port for NetworkPolicy.
+type NetworkPolicyPort struct {
+	// protocol is the protocol (TCP, UDP, SCTP).
+	// +optional
+	Protocol *corev1.Protocol `json:"protocol,omitempty"`
+
+	// port is the port number or name.
+	// +optional
+	Port *intstr.IntOrString `json:"port,omitempty"`
+
+	// endPort is the end of a port range.
+	// +optional
+	EndPort *int32 `json:"endPort,omitempty"`
+}
+
+// NetworkPolicyPeer defines a peer for NetworkPolicy ingress/egress.
+type NetworkPolicyPeer struct {
+	// podSelector selects pods in the same namespace.
+	// +optional
+	PodSelector *metav1.LabelSelector `json:"podSelector,omitempty"`
+
+	// namespaceSelector selects namespaces.
+	// +optional
+	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+
+	// ipBlock selects IP blocks (CIDR).
+	// +optional
+	IPBlock *IPBlock `json:"ipBlock,omitempty"`
+}
+
+// IPBlock defines an IP block for NetworkPolicy.
+type IPBlock struct {
+	// cidr is the CIDR range.
+	// +required
+	CIDR string `json:"cidr"`
+
+	// except specifies CIDR ranges to exclude.
+	// +optional
+	Except []string `json:"except,omitempty"`
 }
 
 // ProbesSpec defines liveness and readiness probe configuration.

@@ -63,6 +63,23 @@ spec:
     - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: DoNotSchedule
+  networkPolicy:
+    ingress:
+      - ports:
+          - protocol: TCP
+            port: 8080
+        from:
+          - podSelector:
+              matchLabels:
+                app: frontend
+    egress:
+      - ports:
+          - protocol: TCP
+            port: 53
+        to:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: kube-system
 ```
 
 ## Initial `spec`
@@ -141,6 +158,25 @@ Each constraint:
 
 When omitted, no topology spread constraints are applied.
 
+### `networkPolicy` — optional
+
+Configures NetworkPolicy for application pods to control ingress/egress traffic.
+
+- `ingress` — optional. Array of ingress rules.
+  - `ports` — optional. Ports to allow (protocol, port, endPort).
+  - `from` — optional. Sources allowed to access pods.
+    - `podSelector` — optional. Select pods in same namespace.
+    - `namespaceSelector` — optional. Select namespaces.
+    - `ipBlock` — optional. CIDR range with optional exceptions.
+
+- `egress` — optional. Array of egress rules.
+  - `ports` — optional. Ports to allow.
+  - `to` — optional. Destinations pods can access (same structure as `from`).
+
+- `policyTypes` — optional. Explicit policy types: `Ingress`, `Egress`. Defaults inferred from ingress/egress presence.
+
+When omitted, no NetworkPolicy is created.
+
 ## Explicitly deferred fields
 
 Do not add these to `v1alpha1` until a concrete use case and ownership model exists:
@@ -198,8 +234,9 @@ Initial owned resources:
 - Deployment.
 - Service when `spec.service` is present.
 - PodDisruptionBudget when `spec.podDisruptionBudget` is present.
+- NetworkPolicy when `spec.networkPolicy` is present.
 
-Future optional resources may include HPA/KEDA, NetworkPolicy, ServiceMonitor, or Argo Rollout, each behind explicit feature/API fields.
+Future optional resources may include HPA/KEDA, ServiceMonitor, or Argo Rollout, each behind explicit feature/API fields.
 
 ## CLI examples
 
