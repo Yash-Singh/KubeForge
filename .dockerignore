@@ -9,6 +9,3 @@
 # Re-include Go module files
 !go.mod
 !go.sum
-
-# Re-include pre-built binary for local builds
-!manager
