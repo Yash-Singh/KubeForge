@@ -8,7 +8,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 image:
-  repository: ghcr.io/yash-singh/kube-forge
+  repository: ghcr.io/yash-singh/kubeforge
   tag: "v0.2.0"
   pullPolicy: IfNotPresent
 
