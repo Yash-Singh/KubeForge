@@ -177,6 +177,58 @@ Configures NetworkPolicy for application pods to control ingress/egress traffic.
 
 When omitted, no NetworkPolicy is created.
 
+### `horizontalPodAutoscaler` — optional
+
+Configures HorizontalPodAutoscaler for CPU/memory-based scaling. Requires `resources` to be set on the container.
+
+- `minReplicas` — required. Minimum pod replicas.
+- `maxReplicas` — required. Maximum pod replicas.
+- `targetCPUUtilizationPercentage` — optional. Target CPU utilization (default: 80%).
+- `targetMemoryUtilizationPercentage` — optional. Target memory utilization.
+- `metrics` — optional. Custom scaling metrics (overrides CPU/memory targets).
+- `behavior` — optional. Scaling behavior configuration.
+
+When omitted, no HPA is created.
+
+### `kedaScaledObject` — optional
+
+Configures a KEDA ScaledObject for event-driven autoscaling (requires KEDA installed in cluster).
+
+- `minReplicaCount` — required. Minimum replicas.
+- `maxReplicaCount` — required. Maximum replicas.
+- `pollingInterval` — optional. Check interval in seconds (default: 30).
+- `cooldownPeriod` — optional. Cooldown period in seconds (default: 300).
+- `triggers` — required. Array of scaling triggers.
+  - `type` — required. Trigger type (e.g., "prometheus", "kafka", "cpu", "memory").
+  - `metadata` — required. Trigger configuration as key-value pairs.
+  - `authenticationRef` — optional. KEDA TriggerAuthentication reference.
+
+When omitted, no ScaledObject is created.
+
+### `argoRollout` — optional
+
+Configures an Argo Rollout instead of a standard Deployment (requires Argo Rollouts installed in cluster).
+
+- `replicas` — optional. Desired pod replicas (default: 1).
+- `strategy` — optional. Rollout strategy.
+  - `canary` — optional. Canary rollout strategy.
+    - `steps` — optional. Array of canary steps.
+      - `setWeight` — optional. Traffic weight percentage (0-100).
+      - `pause` — optional. Pause step with optional `duration`.
+      - `setHeaderRoute` — optional. Header-based routing.
+      - `setMirror` — optional. Traffic mirroring with `percentage`.
+    - `canaryService` — optional. Service for canary pods.
+    - `stableService` — optional. Service for stable pods.
+    - `trafficRouting` — optional. Traffic routing config (Istio, NGINX, SMI, ALB).
+  - `blueGreen` — optional. Blue-green rollout strategy.
+    - `activeService` — required. Service for active (blue) pods.
+    - `previewService` — optional. Service for preview (green) pods.
+    - `autoPromotionEnabled` — optional. Auto-promote when ready (default: true).
+    - `prePromotionAnalysis` — optional. Analysis before promotion.
+    - `postPromotionAnalysis` — optional. Analysis after promotion.
+
+When omitted, no Rollout is created.
+
 ## Explicitly deferred fields
 
 Do not add these to `v1alpha1` until a concrete use case and ownership model exists:
@@ -185,9 +237,7 @@ Do not add these to `v1alpha1` until a concrete use case and ownership model exi
 - cloud provider settings;
 - arbitrary annotations/labels copied everywhere;
 - secret values;
-- autoscaling implementation details;
-- rollout step syntax;
-- network policy graph syntax;
+- rollout step syntax (covered by Argo Rollout strategy);
 - cost/billing data;
 - AI prompts or model configuration.
 
@@ -231,12 +281,12 @@ Avoid excessively verbose status. Do not put logs or large event histories into 
 
 Initial owned resources:
 
-- Deployment.
+- Deployment (or Argo Rollout when `spec.argoRollout` is present).
 - Service when `spec.service` is present.
 - PodDisruptionBudget when `spec.podDisruptionBudget` is present.
 - NetworkPolicy when `spec.networkPolicy` is present.
-
-Future optional resources may include HPA/KEDA, ServiceMonitor, or Argo Rollout, each behind explicit feature/API fields.
+- HorizontalPodAutoscaler when `spec.horizontalPodAutoscaler` is present.
+- KEDA ScaledObject when `spec.kedaScaledObject` is present (requires KEDA).
 
 ## CLI examples
 

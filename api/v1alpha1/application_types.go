@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -64,6 +65,21 @@ type ApplicationSpec struct {
 	// networkPolicy configures NetworkPolicy for the application pods.
 	// +optional
 	NetworkPolicy *NetworkPolicySpec `json:"networkPolicy,omitempty"`
+
+	// horizontalPodAutoscaler configures HorizontalPodAutoscaler for the application.
+	// Requires resource requests to be set on the container.
+	// +optional
+	HorizontalPodAutoscaler *HorizontalPodAutoscalerSpec `json:"horizontalPodAutoscaler,omitempty"`
+
+	// kedaScaledObject configures a KEDA ScaledObject for event-driven autoscaling.
+	// Requires KEDA to be installed in the cluster.
+	// +optional
+	KEDAScaledObject *KEDAScaledObjectSpec `json:"kedaScaledObject,omitempty"`
+
+	// argoRollout configures an Argo Rollout instead of a standard Deployment.
+	// Requires Argo Rollouts to be installed in the cluster.
+	// +optional
+	ArgoRollout *ArgoRolloutSpec `json:"argoRollout,omitempty"`
 }
 
 // PodDisruptionBudgetSpec defines the PodDisruptionBudget configuration.
@@ -335,6 +351,346 @@ type ApplicationStatus struct {
 	// +listType=map
 	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// HorizontalPodAutoscalerSpec defines the HPA configuration.
+type HorizontalPodAutoscalerSpec struct {
+	// minReplicas is the minimum number of pod replicas.
+	// +required
+	// +kubebuilder:validation:Minimum=1
+	MinReplicas int32 `json:"minReplicas"`
+
+	// maxReplicas is the maximum number of pod replicas.
+	// +required
+	// +kubebuilder:validation:Minimum=1
+	MaxReplicas int32 `json:"maxReplicas"`
+
+	// targetCPUUtilizationPercentage is the target average CPU utilization percentage.
+	// Defaults to 80 if not specified and no custom metrics are provided.
+	// +optional
+	TargetCPUUtilizationPercentage *int32 `json:"targetCPUUtilizationPercentage,omitempty"`
+
+	// targetMemoryUtilizationPercentage is the target average memory utilization percentage.
+	// +optional
+	TargetMemoryUtilizationPercentage *int32 `json:"targetMemoryUtilizationPercentage,omitempty"`
+
+	// metrics contains custom metrics for scaling.
+	// If provided, targetCPU/targetMemory are ignored.
+	// +optional
+	Metrics []autoscalingv2.MetricSpec `json:"metrics,omitempty"`
+
+	// behavior configures the scaling behavior of the target.
+	// +optional
+	Behavior *autoscalingv2.HorizontalPodAutoscalerBehavior `json:"behavior,omitempty"`
+}
+
+// KEDAScaledObjectSpec defines the KEDA ScaledObject configuration.
+type KEDAScaledObjectSpec struct {
+	// minReplicaCount is the minimum number of replicas KEDA will scale to.
+	// +required
+	// +kubebuilder:validation:Minimum=0
+	MinReplicaCount int32 `json:"minReplicaCount"`
+
+	// maxReplicaCount is the maximum number of replicas KEDA will scale to.
+	// +required
+	// +kubebuilder:validation:Minimum=1
+	MaxReplicaCount int32 `json:"maxReplicaCount"`
+
+	// pollingInterval is the interval to check each trigger source on.
+	// Defaults to 30 seconds.
+	// +optional
+	// +kubebuilder:default=30
+	PollingInterval *int32 `json:"pollingInterval,omitempty"`
+
+	// cooldownPeriod is the period to wait after the last trigger reported active before scaling the resource back to 0.
+	// Defaults to 300 seconds.
+	// +optional
+	// +kubebuilder:default=300
+	CooldownPeriod *int32 `json:"cooldownPeriod,omitempty"`
+
+	// triggers defines the scaling triggers.
+	// +required
+	Triggers []KEDATrigger `json:"triggers"`
+}
+
+// KEDATrigger defines a KEDA scaling trigger.
+type KEDATrigger struct {
+	// type is the type of trigger (e.g., "prometheus", "kafka", "cpu", "memory").
+	// +required
+	Type string `json:"type"`
+
+	// metadata contains the trigger metadata as key-value pairs.
+	// +required
+	Metadata map[string]string `json:"metadata"`
+
+	// authenticationRef specifies a TriggerAuthentication reference.
+	// +optional
+	AuthenticationRef *KEDAAuthenticationRef `json:"authenticationRef,omitempty"`
+}
+
+// KEDAAuthenticationRef references a KEDA TriggerAuthentication.
+type KEDAAuthenticationRef struct {
+	// name is the name of the TriggerAuthentication resource.
+	// +required
+	Name string `json:"name"`
+
+	// namespace is the namespace of the TriggerAuthentication. If omitted, uses the ScaledObject's namespace.
+	// +optional
+	Namespace *string `json:"namespace,omitempty"`
+}
+
+// ArgoRolloutSpec defines an Argo Rollout instead of a standard Deployment.
+type ArgoRolloutSpec struct {
+	// replicas is the desired number of pod replicas.
+	// +optional
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=1
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// strategy defines the rollout strategy.
+	// +optional
+	Strategy *ArgoRolloutStrategy `json:"strategy,omitempty"`
+}
+
+// ArgoRolloutStrategy defines the Argo Rollout strategy.
+type ArgoRolloutStrategy struct {
+	// canary defines a canary rollout strategy.
+	// +optional
+	Canary *ArgoCanaryStrategy `json:"canary,omitempty"`
+
+	// blueGreen defines a blue-green rollout strategy.
+	// +optional
+	BlueGreen *ArgoBlueGreenStrategy `json:"blueGreen,omitempty"`
+}
+
+// ArgoCanaryStrategy defines a canary rollout strategy.
+type ArgoCanaryStrategy struct {
+	// steps defines the canary rollout steps.
+	// +optional
+	Steps []ArgoCanaryStep `json:"steps,omitempty"`
+
+	// canaryService is the name of the Service used to route traffic to canary pods.
+	// +optional
+	CanaryService string `json:"canaryService,omitempty"`
+
+	// stableService is the name of the Service used to route traffic to stable pods.
+	// +optional
+	StableService string `json:"stableService,omitempty"`
+
+	// trafficRouting defines the traffic routing configuration.
+	// +optional
+	TrafficRouting *ArgoTrafficRouting `json:"trafficRouting,omitempty"`
+}
+
+// ArgoCanaryStep defines a single canary rollout step.
+type ArgoCanaryStep struct {
+	// setWeight sets the traffic weight percentage.
+	// +optional
+	SetWeight *int32 `json:"setWeight,omitempty"`
+
+	// pause defines a pause step.
+	// +optional
+	Pause *ArgoPauseStep `json:"pause,omitempty"`
+
+	// setHeaderRoute sets a header-based routing.
+	// +optional
+	SetHeaderRoute *ArgoHeaderRoute `json:"setHeaderRoute,omitempty"`
+
+	// setMirrorStep enables traffic mirroring.
+	// +optional
+	SetMirror *ArgoMirrorStep `json:"setMirror,omitempty"`
+}
+
+// ArgoPauseStep defines a pause step.
+type ArgoPauseStep struct {
+	// duration is the duration to pause (e.g., "5m", "1h").
+	// If empty, waits indefinitely until manually resumed.
+	// +optional
+	Duration *string `json:"duration,omitempty"`
+}
+
+// ArgoHeaderRoute defines header-based routing.
+type ArgoHeaderRoute struct {
+	// name is the name of the routing rule.
+	// +required
+	Name string `json:"name"`
+
+	// match defines the header match criteria.
+	// +required
+	Match []ArgoHeaderMatch `json:"match"`
+}
+
+// ArgoHeaderMatch defines a header match rule.
+type ArgoHeaderMatch struct {
+	// headerName is the header name to match.
+	// +required
+	HeaderName string `json:"headerName"`
+
+	// headerValue is the header value to match.
+	// +required
+	HeaderValue ArgoHeaderValue `json:"headerValue"`
+}
+
+// ArgoHeaderValue defines the header value match.
+type ArgoHeaderValue struct {
+	// exact is the exact header value.
+	// +optional
+	Exact string `json:"exact,omitempty"`
+
+	// regex is the regex pattern to match.
+	// +optional
+	Regex string `json:"regex,omitempty"`
+
+	// prefix is the prefix to match.
+	// +optional
+	Prefix string `json:"prefix,omitempty"`
+}
+
+// ArgoMirrorStep defines traffic mirroring.
+type ArgoMirrorStep struct {
+	// percentage is the percentage of traffic to mirror.
+	// +required
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=100
+	Percentage int32 `json:"percentage"`
+}
+
+// ArgoBlueGreenStrategy defines a blue-green rollout strategy.
+type ArgoBlueGreenStrategy struct {
+	// activeService is the Service used to route traffic to the active (blue) pods.
+	// +required
+	ActiveService string `json:"activeService"`
+
+	// previewService is the Service used to route traffic to the preview (green) pods.
+	// +optional
+	PreviewService string `json:"previewService,omitempty"`
+
+	// autoPromotionEnabled automatically promotes the new version when ready.
+	// Defaults to true.
+	// +optional
+	// +kubebuilder:default=true
+	AutoPromotionEnabled *bool `json:"autoPromotionEnabled,omitempty"`
+
+	// prePromotionAnalysis defines analysis to run before promotion.
+	// +optional
+	PrePromotionAnalysis *ArgoAnalysis `json:"prePromotionAnalysis,omitempty"`
+
+	// postPromotionAnalysis defines analysis to run after promotion.
+	// +optional
+	PostPromotionAnalysis *ArgoAnalysis `json:"postPromotionAnalysis,omitempty"`
+}
+
+// ArgoAnalysis defines an analysis template for Argo Rollouts.
+type ArgoAnalysis struct {
+	// templates references AnalysisTemplate resources.
+	// +required
+	Templates []ArgoAnalysisTemplateRef `json:"templates"`
+
+	// args are the arguments to pass to the AnalysisTemplate.
+	// +optional
+	Args []ArgoAnalysisArgument `json:"args,omitempty"`
+}
+
+// ArgoAnalysisTemplateRef references an AnalysisTemplate by name.
+type ArgoAnalysisTemplateRef struct {
+	// templateName is the name of the AnalysisTemplate.
+	// +required
+	TemplateName string `json:"templateName"`
+}
+
+// ArgoAnalysisArgument defines an argument for AnalysisTemplate.
+type ArgoAnalysisArgument struct {
+	// name is the argument name.
+	// +required
+	Name string `json:"name"`
+
+	// value is the argument value.
+	// +optional
+	Value *string `json:"value,omitempty"`
+
+	// valueFrom references a Pod value.
+	// +optional
+	ValueFrom *ArgoArgumentValueFrom `json:"valueFrom,omitempty"`
+}
+
+// ArgoArgumentValueFrom references a value from the pod.
+type ArgoArgumentValueFrom struct {
+	// fieldRef references a field in the pod spec.
+	// +required
+	FieldRef Argov1FieldRef `json:"fieldRef"`
+}
+
+// Argov1FieldRef defines a field reference.
+type Argov1FieldRef struct {
+	// fieldPath is the path to the field (e.g., "metadata.labels['version']").
+	// +required
+	FieldPath string `json:"fieldPath"`
+}
+
+// ArgoTrafficRouting defines traffic routing configuration.
+type ArgoTrafficRouting struct {
+	// istio configures Istio traffic routing.
+	// +optional
+	Istio *ArgoIstioTrafficRouting `json:"istio,omitempty"`
+
+	// nginx configures NGINX traffic routing.
+	// +optional
+	Nginx *ArgoNginxTrafficRouting `json:"nginx,omitempty"`
+
+	// smi configures SMI traffic routing.
+	// +optional
+	SMI *ArgoSMITrafficRouting `json:"smi,omitempty"`
+
+	// alb configures AWS ALB traffic routing.
+	// +optional
+	ALB *ArgoALBTrafficRouting `json:"alb,omitempty"`
+}
+
+// ArgoIstioTrafficRouting defines Istio traffic routing.
+type ArgoIstioTrafficRouting struct {
+	// virtualServices references Istio VirtualServices.
+	// +optional
+	VirtualServices []ArgoIstioVirtualService `json:"virtualServices,omitempty"`
+}
+
+// ArgoIstioVirtualService references an Istio VirtualService.
+type ArgoIstioVirtualService struct {
+	// name is the VirtualService name.
+	// +required
+	Name string `json:"name"`
+
+	// routes are the routes within the VirtualService.
+	// +required
+	Routes []string `json:"routes"`
+}
+
+// ArgoNginxTrafficRouting defines NGINX traffic routing.
+type ArgoNginxTrafficRouting struct {
+	// stableIngress is the name of the stable Ingress.
+	// +required
+	StableIngress string `json:"stableIngress"`
+
+	// additionalIngressAnnotations are additional annotations for the canary Ingress.
+	// +optional
+	AdditionalIngressAnnotations map[string]string `json:"additionalIngressAnnotations,omitempty"`
+}
+
+// ArgoSMITrafficRouting defines SMI traffic routing.
+type ArgoSMITrafficRouting struct {
+	// trafficSplitName is the name of the TrafficSplit resource.
+	// +required
+	TrafficSplitName string `json:"trafficSplitName"`
+}
+
+// ArgoALBTrafficRouting defines AWS ALB traffic routing.
+type ArgoALBTrafficRouting struct {
+	// rootService is the root service for the ALB.
+	// +required
+	RootService string `json:"rootService"`
+
+	// ingress is the Ingress annotation settings.
+	// +optional
+	Ingress map[string]string `json:"ingress,omitempty"`
 }
 
 // +kubebuilder:object:root=true
