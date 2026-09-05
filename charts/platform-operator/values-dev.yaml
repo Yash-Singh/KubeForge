@@ -2,7 +2,7 @@
 # Merges on top of values.yaml
 
 image:
-  tag: "v0.2.1"
+  tag: "main"
   pullPolicy: Always
 
 replicaCount: 1
