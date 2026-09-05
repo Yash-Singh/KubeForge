@@ -3,6 +3,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -27,6 +29,7 @@ type ApplicationReconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
 	DynamicClient dynamic.Interface
+	Recorder      record.EventRecorder
 }
 
 // +kubebuilder:rbac:groups=platform.kubeforge.io,resources=applications,verbs=get;list;watch;create;update;patch;delete
@@ -41,6 +44,7 @@ type ApplicationReconciler struct {
 // +kubebuilder:rbac:groups=argoproj.io,resources=rollouts,verbs=get;list;watch;create;update;patch;delete
 
 func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	start := time.Now()
 	logger := logf.FromContext(ctx)
 
 	app := &platformv1alpha1.Application{}
@@ -51,6 +55,8 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
+	logger = logger.WithValues("generation", app.Generation, "observedGeneration", app.Status.ObservedGeneration)
+
 	replicas := ptr.To[int32](1)
 	if app.Spec.Replicas != nil {
 		replicas = app.Spec.Replicas
@@ -58,45 +64,63 @@ func (r *ApplicationReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	if err := r.reconcileDeployment(ctx, app, *replicas); err != nil {
 		logger.Error(err, "Failed to reconcile Deployment")
+		reconcileErrors.WithLabelValues(app.Namespace, app.Name, "deployment").Inc()
+		r.Recorder.Event(app, corev1.EventTypeWarning, "ReconcileError", fmt.Sprintf("Failed to reconcile Deployment: %v", err))
 		return ctrl.Result{}, err
 	}
 
 	if err := r.reconcilePodDisruptionBudget(ctx, app); err != nil {
 		logger.Error(err, "Failed to reconcile PodDisruptionBudget")
+		reconcileErrors.WithLabelValues(app.Namespace, app.Name, "pdb").Inc()
+		r.Recorder.Event(app, corev1.EventTypeWarning, "ReconcileError", fmt.Sprintf("Failed to reconcile PodDisruptionBudget: %v", err))
 		return ctrl.Result{}, err
 	}
 
 	if app.Spec.Service != nil {
 		if err := r.reconcileService(ctx, app); err != nil {
 			logger.Error(err, "Failed to reconcile Service")
+			reconcileErrors.WithLabelValues(app.Namespace, app.Name, "service").Inc()
+			r.Recorder.Event(app, corev1.EventTypeWarning, "ReconcileError", fmt.Sprintf("Failed to reconcile Service: %v", err))
 			return ctrl.Result{}, err
 		}
 	}
 
 	if err := r.reconcileNetworkPolicy(ctx, app); err != nil {
 		logger.Error(err, "Failed to reconcile NetworkPolicy")
+		reconcileErrors.WithLabelValues(app.Namespace, app.Name, "networkpolicy").Inc()
+		r.Recorder.Event(app, corev1.EventTypeWarning, "ReconcileError", fmt.Sprintf("Failed to reconcile NetworkPolicy: %v", err))
 		return ctrl.Result{}, err
 	}
 
 	if err := r.reconcileHorizontalPodAutoscaler(ctx, app); err != nil {
 		logger.Error(err, "Failed to reconcile HorizontalPodAutoscaler")
+		reconcileErrors.WithLabelValues(app.Namespace, app.Name, "hpa").Inc()
+		r.Recorder.Event(app, corev1.EventTypeWarning, "ReconcileError", fmt.Sprintf("Failed to reconcile HorizontalPodAutoscaler: %v", err))
 		return ctrl.Result{}, err
 	}
 
 	if err := r.reconcileKEDAScaledObject(ctx, app); err != nil {
 		logger.Error(err, "Failed to reconcile KEDA ScaledObject")
+		reconcileErrors.WithLabelValues(app.Namespace, app.Name, "keda").Inc()
+		r.Recorder.Event(app, corev1.EventTypeWarning, "ReconcileError", fmt.Sprintf("Failed to reconcile KEDA ScaledObject: %v", err))
 		return ctrl.Result{}, err
 	}
 
 	if err := r.reconcileArgoRollout(ctx, app); err != nil {
 		logger.Error(err, "Failed to reconcile Argo Rollout")
+		reconcileErrors.WithLabelValues(app.Namespace, app.Name, "rollout").Inc()
+		r.Recorder.Event(app, corev1.EventTypeWarning, "ReconcileError", fmt.Sprintf("Failed to reconcile Argo Rollout: %v", err))
 		return ctrl.Result{}, err
 	}
 
 	if err := r.updateStatus(ctx, app); err != nil {
 		logger.Error(err, "Failed to update status")
+		reconcileErrors.WithLabelValues(app.Namespace, app.Name, "status").Inc()
 		return ctrl.Result{}, err
 	}
+
+	reconcileTotal.WithLabelValues(app.Namespace, app.Name, "success").Inc()
+	reconcileDuration.WithLabelValues(app.Namespace, app.Name).Observe(time.Since(start).Seconds())
 
 	return ctrl.Result{}, nil
 }
@@ -242,6 +266,7 @@ func (r *ApplicationReconciler) reconcileService(ctx context.Context, app *platf
 func (r *ApplicationReconciler) updateStatus(ctx context.Context, app *platformv1alpha1.Application) error {
 	logger := logf.FromContext(ctx)
 	original := app.DeepCopy()
+	previousPhase := app.Status.Phase
 
 	app.Status.ObservedGeneration = app.Generation
 
@@ -278,6 +303,32 @@ func (r *ApplicationReconciler) updateStatus(ctx context.Context, app *platformv
 	if err := r.Status().Patch(ctx, app, client.MergeFrom(original)); err != nil {
 		logger.Error(err, "Failed to patch Application status")
 		return err
+	}
+
+	// Update metrics
+	phaseValue := float64(0)
+	switch app.Status.Phase {
+	case phaseReady:
+		phaseValue = 1
+	case phaseProgressing:
+		phaseValue = 2
+	case phaseDegraded:
+		phaseValue = 3
+	}
+	applicationPhase.WithLabelValues(app.Namespace, app.Name).Set(phaseValue)
+	applicationReplicas.WithLabelValues(app.Namespace, app.Name, "desired").Set(float64(app.Status.DesiredReplicas))
+	applicationReplicas.WithLabelValues(app.Namespace, app.Name, "ready").Set(float64(app.Status.ReadyReplicas))
+
+	// Record events on phase transitions
+	if previousPhase != app.Status.Phase {
+		switch app.Status.Phase {
+		case phaseReady:
+			r.Recorder.Event(app, corev1.EventTypeNormal, "PhaseReady", fmt.Sprintf("Application is ready (%d/%d replicas)", app.Status.ReadyReplicas, app.Status.DesiredReplicas))
+		case phaseProgressing:
+			r.Recorder.Event(app, corev1.EventTypeNormal, "PhaseProgressing", fmt.Sprintf("Application is progressing (%d/%d replicas)", app.Status.ReadyReplicas, app.Status.DesiredReplicas))
+		case phaseDegraded:
+			r.Recorder.Event(app, corev1.EventTypeWarning, "PhaseDegraded", "Application is degraded")
+		}
 	}
 
 	return nil

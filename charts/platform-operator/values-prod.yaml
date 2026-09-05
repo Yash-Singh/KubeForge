@@ -21,3 +21,6 @@ leaderElection:
 metrics:
   serviceMonitor:
     enabled: true
+
+dashboards:
+  enabled: true

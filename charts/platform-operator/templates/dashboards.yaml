@@ -1,0 +1,15 @@
+{{- if .Values.dashboards.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "platform-operator.fullname" . }}-dashboards
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "platform-operator.labels" . | nindent 4 }}
+    grafana_dashboard: "1"
+  annotations:
+    grafana_folder: "KubeForge"
+data:
+  operator-overview.json: |-
+    {{- .Files.Get "dashboards/operator-overview.json" | nindent 4 }}
+{{- end }}
