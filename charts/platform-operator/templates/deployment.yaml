@@ -36,9 +36,7 @@ spec:
         {{- end }}
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=:8443
-        {{- if .Values.metrics.secure }}
-        - --metrics-secure=true
-        {{- end }}
+        - --metrics-secure={{ ternary "true" "false" .Values.metrics.secure }}
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         name: manager
