@@ -19,5 +19,6 @@ leaderElection:
   enabled: false
 
 metrics:
+  secure: false
   serviceMonitor:
     enabled: false
