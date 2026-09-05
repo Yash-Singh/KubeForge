@@ -299,9 +299,9 @@ func buildNetworkPolicyPeers(peers []platformv1alpha1.NetworkPolicyPeer) []netwo
 	return result
 }
 
-func getOrDefault(ptr *int32, def int32) int32 {
-	if ptr != nil {
-		return *ptr
+func getOrDefault(val *int32, def int32) int32 {
+	if val != nil {
+		return *val
 	}
 	return def
 }
@@ -351,8 +351,8 @@ func desiredHorizontalPodAutoscaler(app *platformv1alpha1.Application) *autoscal
 				AverageUtilization: hpaSpec.TargetCPUUtilizationPercentage,
 			}
 			metrics = append(metrics, autoscalingv2.MetricSpec{
-				Type:      autoscalingv2.ResourceMetricSourceType,
-				Resource:  &autoscalingv2.ResourceMetricSource{Name: corev1.ResourceCPU, Target: target},
+				Type:     autoscalingv2.ResourceMetricSourceType,
+				Resource: &autoscalingv2.ResourceMetricSource{Name: corev1.ResourceCPU, Target: target},
 			})
 		}
 		if hpaSpec.TargetMemoryUtilizationPercentage != nil {
@@ -361,8 +361,8 @@ func desiredHorizontalPodAutoscaler(app *platformv1alpha1.Application) *autoscal
 				AverageUtilization: hpaSpec.TargetMemoryUtilizationPercentage,
 			}
 			metrics = append(metrics, autoscalingv2.MetricSpec{
-				Type:      autoscalingv2.ResourceMetricSourceType,
-				Resource:  &autoscalingv2.ResourceMetricSource{Name: corev1.ResourceMemory, Target: target},
+				Type:     autoscalingv2.ResourceMetricSourceType,
+				Resource: &autoscalingv2.ResourceMetricSource{Name: corev1.ResourceMemory, Target: target},
 			})
 		}
 		if len(metrics) == 0 {
@@ -426,7 +426,7 @@ func desiredKEDAScaledObject(app *platformv1alpha1.Application) *unstructured.Un
 	}
 
 	spec := map[string]interface{}{
-		"scaleTargetRef": scaleTargetRef,
+		"scaleTargetRef":  scaleTargetRef,
 		"minReplicaCount": int64(kedaSpec.MinReplicaCount),
 		"maxReplicaCount": int64(kedaSpec.MaxReplicaCount),
 		"triggers":        triggers,
@@ -592,7 +592,7 @@ func buildArgoCanaryStrategy(app *platformv1alpha1.Application, canarySpec *plat
 				vs := make([]interface{}, 0, len(canarySpec.TrafficRouting.Istio.VirtualServices))
 				for _, v := range canarySpec.TrafficRouting.Istio.VirtualServices {
 					vsEntry := map[string]interface{}{
-						"name": v.Name,
+						"name":   v.Name,
 						"routes": v.Routes,
 					}
 					vs = append(vs, vsEntry)
@@ -640,8 +640,8 @@ func buildArgoHeaderRoute(route *platformv1alpha1.ArgoHeaderRoute) map[string]in
 			entry := map[string]interface{}{
 				"headerName": m.HeaderName,
 				"headerValue": map[string]interface{}{
-					"exact": m.HeaderValue.Exact,
-					"regex": m.HeaderValue.Regex,
+					"exact":  m.HeaderValue.Exact,
+					"regex":  m.HeaderValue.Regex,
 					"prefix": m.HeaderValue.Prefix,
 				},
 			}

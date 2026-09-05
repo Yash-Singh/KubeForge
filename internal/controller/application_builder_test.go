@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 
 	platformv1alpha1 "github.com/Yash-Singh/KubeForge/api/v1alpha1"
 )
@@ -35,7 +36,7 @@ var _ = Describe("desiredDeploymentSpec", func() {
 			},
 			Spec: platformv1alpha1.ApplicationSpec{
 				Image:     "ghcr.io/example/checkout:v1.0.0",
-				Replicas:  int32Ptr(2),
+				Replicas:  ptr.To(int32(2)),
 				Resources: resourceRequirements(),
 				Env: []platformv1alpha1.EnvVar{
 					{Name: "LOG_LEVEL", Value: "info"},
@@ -134,10 +135,6 @@ var _ = Describe("isDeploymentDegraded", func() {
 		Expect(isDeploymentDegraded(dep)).To(BeFalse())
 	})
 })
-
-func int32Ptr(i int32) *int32 {
-	return &i
-}
 
 func resourceRequirements() *corev1.ResourceRequirements {
 	return &corev1.ResourceRequirements{

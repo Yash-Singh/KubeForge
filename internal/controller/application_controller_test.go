@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,7 +67,7 @@ var _ = Describe("Application Reconciler", func() {
 
 	It("should create a Service when spec.service is configured", func() {
 		By("setting spec.service")
-		app.Spec.Service = &platformv1alpha1.ServiceSpec{Port: 8080, TargetPort: int32Ptr(8080)}
+		app.Spec.Service = &platformv1alpha1.ServiceSpec{Port: 8080, TargetPort: ptr.To(int32(8080))}
 		Expect(k8sClient.Update(ctx, app)).To(Succeed())
 
 		By("reconciling the Application")
@@ -178,7 +179,7 @@ func newApplication() *platformv1alpha1.Application {
 		},
 		Spec: platformv1alpha1.ApplicationSpec{
 			Image:    "ghcr.io/example/checkout:v1.0.0",
-			Replicas: int32Ptr(1),
+			Replicas: ptr.To(int32(1)),
 		},
 	}
 }
