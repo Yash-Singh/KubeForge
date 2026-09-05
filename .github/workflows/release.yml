@@ -40,7 +40,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository_owner }}/kubeforge
+          images: ghcr.io/yash-singh/kubeforge
           tags: |
             type=ref,event=tag
             type=semver,pattern={{version}}
@@ -61,7 +61,7 @@ jobs:
           curl -X PUT \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/user/packages/container/${{ github.repository_owner }}%2Fkubeforge/visibility" \
+            "https://api.github.com/user/packages/container/yash-singh%2Fkubeforge/visibility" \
             -d '{"visibility":"public"}'
 
       - name: Generate release notes
