@@ -1,0 +1,23 @@
+# Production environment overrides
+# Merges on top of values.yaml
+
+image:
+  tag: "v0.2.1"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+leaderElection:
+  enabled: true
+
+metrics:
+  serviceMonitor:
+    enabled: true

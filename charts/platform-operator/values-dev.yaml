@@ -1,0 +1,23 @@
+# Dev environment overrides
+# Merges on top of values.yaml
+
+image:
+  tag: "main"
+  pullPolicy: Always
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+leaderElection:
+  enabled: false
+
+metrics:
+  serviceMonitor:
+    enabled: false
