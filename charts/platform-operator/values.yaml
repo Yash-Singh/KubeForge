@@ -63,6 +63,7 @@ leaderElection:
   enabled: true
 
 metrics:
+  secure: true
   service:
     create: true
     port: 8443
