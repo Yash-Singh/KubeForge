@@ -70,3 +70,25 @@ Created `docs/devlog/16-phase3-keda-argo-rollouts.md` documenting:
 - CI: Lint fixes committed and pushed
 - v0.2.1: Released with multi-arch (amd64 + arm64)
 - All Phase 3 features verified on live cluster
+
+## Dev/Prod ArgoCD Setup
+
+Split the single ArgoCD app into two:
+
+| App | Image Tag | Auto-Sync | Prune | Purpose |
+|-----|-----------|-----------|-------|---------|
+| `kubeforge-platform-operator-dev` | `main` (to be pushed) | Yes | Yes | Dev/staging — deploys every commit |
+| `kubeforge-platform-operator-prod` | `v0.2.1` | Yes | No | Production — only release tags |
+
+Files:
+- `deploy/argocd/application-dev.yaml` — Dev app
+- `deploy/argocd/application-prod.yaml` — Prod app
+- `deploy/argocd/application.yaml` — Removed (replaced by dev/prod)
+
+**Note:** The `main` image tag doesn't exist in GHCR yet. Dev app temporarily uses `v0.2.1`. Once the release workflow pushes a `main` tag on every merge, dev will auto-deploy latest.
+
+### ArgoCD Configmap Incident
+
+When reverting the `resource.exclusions` change, the `argocd-cm` configmap was accidentally overwritten with only the `resource.exclusions` key, losing all `resource.customizations` settings. This caused ArgoCD application controller to fail with "configmap not found" errors. Fixed by restoring the full configmap with all original keys.
+
+**Lesson:** Always use `kubectl get configmap -o yaml` before editing, and patch specific keys rather than replacing the entire configmap.

@@ -1,8 +1,10 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: kubeforge-platform-operator
+  name: kubeforge-platform-operator-prod
   namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
 spec:
   project: kubeforge
   source:
@@ -12,15 +14,22 @@ spec:
     helm:
       values: |
         image:
-          tag: v0.1.0
+          repository: ghcr.io/yash-singh/kubeforge
+          tag: v0.2.1
   destination:
     server: https://kubernetes.default.svc
     namespace: kubeforge-system
   syncPolicy:
     automated:
-      prune: true
+      prune: false
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - ServerSideApply=true
-  revisionHistoryLimit: 3
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
