@@ -71,21 +71,34 @@ Created `docs/devlog/16-phase3-keda-argo-rollouts.md` documenting:
 - v0.2.1: Released with multi-arch (amd64 + arm64)
 - All Phase 3 features verified on live cluster
 
-## Dev/Prod ArgoCD Setup
+## Dev/Prod ArgoCD Setup — ApplicationSet + Helm
 
-Split the single ArgoCD app into two:
+Used ArgoCD **ApplicationSet** with Helm value files to manage dev/prod environments:
 
-| App | Image Tag | Auto-Sync | Prune | Purpose |
-|-----|-----------|-----------|-------|---------|
-| `kubeforge-platform-operator-dev` | `main` (to be pushed) | Yes | Yes | Dev/staging — deploys every commit |
-| `kubeforge-platform-operator-prod` | `v0.2.1` | Yes | No | Production — only release tags |
+```
+deploy/argocd/
+  applicationset.yaml     ← generates dev/prod apps from template
+  project.yaml            ← shared project config
 
-Files:
-- `deploy/argocd/application-dev.yaml` — Dev app
-- `deploy/argocd/application-prod.yaml` — Prod app
-- `deploy/argocd/application.yaml` — Removed (replaced by dev/prod)
+charts/platform-operator/
+  values.yaml             ← defaults
+  values-dev.yaml         ← dev overrides (tag: main, 1 replica, no ServiceMonitor)
+  values-prod.yaml        ← prod overrides (tag: v0.2.1, 2 replicas, ServiceMonitor)
+```
 
-**Note:** The `main` image tag doesn't exist in GHCR yet. Dev app temporarily uses `v0.2.1`. Once the release workflow pushes a `main` tag on every merge, dev will auto-deploy latest.
+**ApplicationSet** uses a list generator with two elements (dev, prod). Each generates an ArgoCD Application that points to the same Helm chart but with different `values-*.yaml` files.
+
+**Environment differences:**
+
+| Setting | Dev | Prod |
+|---------|-----|------|
+| Image tag | `main` (to be pushed) | `v0.2.1` |
+| Replicas | 1 | 2 |
+| ServiceMonitor | disabled | enabled |
+| Leader election | disabled | enabled |
+| Resources | 250m/128Mi limit | 500m/128Mi limit |
+
+**Lesson:** Values files must be committed and pushed to git before ArgoCD can use them — it reads from the remote repo, not local filesystem.
 
 ### ArgoCD Configmap Incident
 
