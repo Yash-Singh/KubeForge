@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +24,14 @@ const (
 	namespace = "default"
 	name      = "test-app"
 )
+
+func newTestReconciler() *ApplicationReconciler {
+	return &ApplicationReconciler{
+		Client:   k8sClient,
+		Scheme:   k8sClient.Scheme(),
+		Recorder: record.NewFakeRecorder(100),
+	}
+}
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -53,9 +62,9 @@ var _ = Describe("Application Reconciler", func() {
 		Expect(k8sClient.Delete(ctx, app)).To(Succeed())
 	})
 
-	It("should create a Deployment when an Application is created", func() {
+		It("should create a Deployment when an Application is created", func() {
 		By("reconciling the Application")
-		r := &ApplicationReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+		r := newTestReconciler()
 		_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: typeNamespacedName})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -65,13 +74,13 @@ var _ = Describe("Application Reconciler", func() {
 		Expect(dep.Spec.Template.Spec.Containers[0].Image).To(Equal(app.Spec.Image))
 	})
 
-	It("should create a Service when spec.service is configured", func() {
+		It("should create a Service when spec.service is configured", func() {
 		By("setting spec.service")
 		app.Spec.Service = &platformv1alpha1.ServiceSpec{Port: 8080, TargetPort: ptr.To(int32(8080))}
 		Expect(k8sClient.Update(ctx, app)).To(Succeed())
 
 		By("reconciling the Application")
-		r := &ApplicationReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+		r := newTestReconciler()
 		_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: typeNamespacedName})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -83,12 +92,12 @@ var _ = Describe("Application Reconciler", func() {
 		Expect(svc.Spec.Selector).To(Equal(map[string]string{nameLabel: name}))
 	})
 
-	It("should not create a Service when spec.service is nil", func() {
+		It("should not create a Service when spec.service is nil", func() {
 		By("verifying the Application has no service")
 		Expect(app.Spec.Service).To(BeNil())
 
 		By("reconciling the Application")
-		r := &ApplicationReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+		r := newTestReconciler()
 		_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: typeNamespacedName})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -99,9 +108,9 @@ var _ = Describe("Application Reconciler", func() {
 		Expect(errors.IsNotFound(err)).To(BeTrue())
 	})
 
-	It("should update status phase to Progressing then Ready", func() {
+		It("should update status phase to Progressing then Ready", func() {
 		By("reconciling the Application")
-		r := &ApplicationReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+		r := newTestReconciler()
 		_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: typeNamespacedName})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -119,9 +128,9 @@ var _ = Describe("Application Reconciler", func() {
 		}, "10s", "500ms").Should(Succeed())
 	})
 
-	It("should update the Deployment when spec.image changes", func() {
+		It("should update the Deployment when spec.image changes", func() {
 		By("reconciling the Application")
-		r := &ApplicationReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+		r := newTestReconciler()
 		_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: typeNamespacedName})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -147,9 +156,9 @@ var _ = Describe("Application Reconciler", func() {
 		}, "10s", "500ms").Should(Equal("ghcr.io/example/checkout:v2.0.0"))
 	})
 
-	It("should recover a deleted Deployment", func() {
+		It("should recover a deleted Deployment", func() {
 		By("reconciling the Application")
-		r := &ApplicationReconciler{Client: k8sClient, Scheme: k8sClient.Scheme()}
+		r := newTestReconciler()
 		_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: typeNamespacedName})
 		Expect(err).NotTo(HaveOccurred())
 

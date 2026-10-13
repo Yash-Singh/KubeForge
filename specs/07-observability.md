@@ -9,24 +9,22 @@ The platform should make it possible to answer:
 3. How long does reconciliation take?
 4. Why is an Application degraded?
 5. What changed before a failure?
-6. What evidence did the AI use?
 
 ## Metrics
 
 Use Prometheus-compatible metrics.
 
-### Operator metrics
+### Operator Metrics
 
-Recommended baseline:
+| Metric | Type | Labels | Description |
+|--------|------|--------|-------------|
+| `kubeforge_reconcile_total` | Counter | namespace, name, result | Total reconciliations |
+| `kubeforge_reconcile_duration_seconds` | Histogram | namespace, name | Reconciliation duration |
+| `kubeforge_reconcile_errors_total` | Counter | namespace, name, error_type | Reconcile errors |
+| `kubeforge_application_phase` | Gauge | namespace, name | Current phase (1=Ready, 2=Progressing, 3=Degraded) |
+| `kubeforge_application_replicas` | Gauge | namespace, name, state | Replica counts |
 
-- `platform_operator_reconcile_total`
-- `platform_operator_reconcile_errors_total`
-- `platform_operator_reconcile_duration_seconds`
-- `platform_operator_applications_total`
-- `platform_operator_applications_ready`
-- `platform_operator_applications_degraded`
-
-Controller-runtime metrics should be retained where useful rather than duplicating all framework metrics.
+Controller-runtime metrics are retained where useful.
 
 Avoid high-cardinality labels such as unrestricted Pod UID, log line, request ID, or user text.
 
@@ -34,52 +32,43 @@ Avoid high-cardinality labels such as unrestricted Pod UID, log line, request ID
 
 Emit structured JSON logs with:
 
-- timestamp;
-- level;
-- controller/component;
-- namespace/name where applicable;
-- reconcile/request correlation ID when available;
-- error classification;
-- safe, bounded message.
+- timestamp
+- level
+- controller/component
+- namespace/name where applicable
+- reconcile/request correlation ID when available
+- error classification
+- safe, bounded message
 
 Never log:
 
-- credentials;
-- bearer tokens;
-- secrets;
-- full HTTP authorization headers;
-- arbitrary user prompts containing confidential data.
+- credentials
+- bearer tokens
+- secrets
+- full HTTP authorization headers
+
+## Kubernetes Events
+
+Record events on Application CRs during phase transitions:
+
+- `PhaseReady` — Application is ready
+- `PhaseProgressing` — Application is progressing
+- `PhaseDegraded` — Application is degraded
+- `ReconcileError` — Reconciliation failed
 
 ## Traces
 
-Use OpenTelemetry for the operator and AI service where practical.
+OpenTelemetry traces are deferred to a future phase.
 
-Important spans:
+Important spans for future implementation:
 
 ```text
-Git/Argo deployment context
-        |
-        v
 operator.reconcile
    |
    +--> kubernetes.get
    +--> kubernetes.patch
    +--> status.update
 ```
-
-AI service:
-
-```text
-agent.invoke
-   |
-   +--> tool.kubernetes.get_pods
-   +--> tool.kubernetes.get_events
-   +--> tool.prometheus.query
-   +--> tool.argocd.get_application
-   +--> llm.invoke
-```
-
-Use OpenTelemetry GenAI semantic conventions where applicable and stable enough for the selected instrumentation. Keep sensitive prompt/completion content out of telemetry by default; capture metadata such as provider/model, operation, duration, token counts and error class according to the current conventions and privacy policy.
 
 ## Correlation
 
@@ -101,20 +90,19 @@ Pod readiness
 Runtime metrics/logs
 ```
 
-The first implementation may correlate only the identifiers that are reliably available. Do not fabricate timestamps or causal links.
+The first implementation correlates only the identifiers that are reliably available.
 
 ## Grafana
 
-Provide a dashboard JSON or provisioning config with:
+Pre-built dashboards are available in `charts/platform-operator/dashboards/`:
 
-- controller health;
-- reconcile rate/errors/latency;
-- Applications by state;
-- queue depth if exposed;
-- optional AI request/tool-call health.
+- Controller health
+- Reconcile rate/errors/latency
+- Applications by state
+- Replica counts
 
-## Logs backend
+## Logs Backend
 
-The core project does not require Elasticsearch or Sumo Logic. Local development should work with stdout + OTel Collector and an optional log backend.
+The core project does not require Elasticsearch or Sumo Logic. Local development works with stdout + OTel Collector and an optional log backend.
 
 Kafka/Elasticsearch belong to a future scale-oriented adapter/demo.

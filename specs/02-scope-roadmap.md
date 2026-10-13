@@ -1,115 +1,74 @@
 # Scope and Roadmap
 
-## Phase 1 — Kubernetes Operator MVP
+## Completed Phases
 
-### Must have
+### Phase 1 — Kubernetes Operator MVP ✅
 
-- Go module.
-- Kubebuilder/controller-runtime project structure.
-- `Application` CRD, namespaced.
-- Structural OpenAPI schema validation.
-- Deployment reconciliation.
-- Service reconciliation.
-- Owner references.
-- Status/conditions.
-- Observed generation.
-- Idempotent reconciliation.
-- Finalizer only if a real external cleanup requirement appears; otherwise avoid one.
-- Kubernetes API error handling and safe requeue behavior.
-- Unit tests.
-- envtest reconciliation tests.
-- Example manifests.
+- Go module with Kubebuilder/controller-runtime
+- `Application` CRD (namespaced, short name: `app`)
+- Structural OpenAPI schema validation
+- Deployment, Service, PDB, NetworkPolicy, HPA reconciliation
+- KEDA ScaledObject and Argo Rollouts integration
+- Owner references and garbage collection
+- Status/conditions with phase tracking (Ready/Progressing/Degraded)
+- Observed generation
+- Idempotent reconciliation
+- Kubernetes API error handling and safe requeue behavior
+- Unit tests and envtest reconciliation tests
+- Example manifests
 
-### Not yet
+### Phase 2 — GitOps and Delivery ✅
 
-- AI.
-- KEDA.
-- Argo Rollouts.
-- AWS.
-- Kafka.
-- Elasticsearch.
-- UI.
+- Helm chart for installation
+- Kustomize examples/overlays
+- GitHub Actions for lint/test/build
+- Container image publication to GHCR (multi-arch: amd64+arm64)
+- Release tags and immutable versioning
+- ArgoCD ApplicationSet for dev/prod environments
+- Local Kind-based E2E pipeline
+- Security scanning for source and image
 
-## Phase 2 — GitOps and Delivery
+### Phase 3 — Reliability and Scaling ✅
 
-### Must have
+- Probes and resource defaults
+- PodDisruptionBudget
+- Topology spread constraints
+- NetworkPolicy generation
+- HPA integration
+- KEDA scale-to-zero autoscaling
+- Argo Rollouts for canary/blue-green deployments
 
-- Helm chart for installation.
-- Kustomize examples/overlays if they add useful GitOps value.
-- GitHub Actions for lint/test/build.
-- Container image publication to GHCR by default.
-- Release tags and immutable versioning.
-- Automated release notes/changelog generation may be added after basic releases work.
-- Argo CD application manifest/example.
-- Local Kind-based E2E pipeline.
-- Security scanning for source and image.
+### Phase 4 — Observability ✅
 
-### Design constraint
+- Custom Prometheus metrics (reconcile rate, duration, errors, application phase)
+- Grafana dashboard definitions
+- Structured JSON logging
+- Kubernetes events on phase transitions
+- Metrics server on :8443
 
-Argo CD is the deployment reconciler. Git is the desired-state source of truth for installed configuration. The operator is the reconciler of `Application` objects inside Kubernetes.
+## Future Phases (Deferred)
 
-## Phase 3 — Reliability and Scaling
+### Phase 5 — AI and MCP
 
-Implement as independent integrations, not a single large feature.
+> Not implemented. Deferred to a separate project.
 
-Potential order:
+Would include:
+- Separate AI service
+- Configurable model provider
+- MCP server exposing read-only platform tools
+- Evidence-grounded incident/triage analysis
 
-1. probes/defaults;
-2. resource defaults;
-3. PodDisruptionBudget;
-4. topology spread constraints;
-5. optional NetworkPolicy generation;
-6. HPA integration;
-7. KEDA integration;
-8. Argo Rollouts integration.
+### Phase 6 — Optional Advanced Integrations
 
-Each integration needs a clear CRD contract, lifecycle ownership model, tests, and opt-in behavior.
+> Not implemented. Deferred for future consideration.
 
-## Phase 4 — Observability
+Would include:
+- Lightweight IDP/UI
+- AWS/EKS integration
+- Kafka/Elasticsearch log pipeline
+- Multi-cluster support
+- Advanced policy/security integrations
 
-- Prometheus operator metrics.
-- Grafana dashboard definitions.
-- OpenTelemetry traces for operator and AI service.
-- Deployment/change correlation.
-- Structured JSON logs.
-- Kubernetes event/context collection for diagnosis.
+## Scope Rule
 
-Do not add Kafka/Elasticsearch just to demonstrate them. They are optional future adapters for high-volume centralized log pipelines.
-
-## Phase 5 — AI and MCP
-
-### MVP
-
-- Separate AI service.
-- Configurable model provider.
-- No model specified in core project.
-- Tool-calling agent.
-- MCP server exposing safe read-only platform tools.
-- Evidence-grounded incident/triage analysis.
-- Structured recommendation output.
-- Audit trail for AI tool calls.
-- Explicit confidence/uncertainty language.
-
-### Later
-
-- Git diff/change correlation.
-- Resource optimization recommendations.
-- GitHub issue/PR generation.
-- Human-approved write tools.
-- AI evaluation suite with regression datasets.
-
-## Phase 6 — Optional advanced integrations
-
-Only after the core project is stable:
-
-- lightweight IDP/UI;
-- AWS/EKS integration;
-- local cloud emulation where technically useful;
-- Kafka/Elasticsearch log path;
-- multi-cluster support;
-- advanced policy/security integrations;
-- controlled automated remediation.
-
-## Scope rule
-
-A feature is not MVP merely because it is interesting. If it does not strengthen the core story of Kubernetes control plane + GitOps + observability + safe AI operations, defer it.
+A feature is not MVP merely because it is interesting. If it does not strengthen the core story of Kubernetes control plane + GitOps + observability, defer it.

@@ -1,17 +1,15 @@
 # System Architecture
 
-## Architectural principles
+## Architectural Principles
 
-1. Kubernetes remains the source of runtime truth.
-2. Git is the desired-state source of truth for deployed configuration.
-3. The operator is deterministic and never calls an LLM during reconciliation.
-4. AI is separated from the control plane.
-5. MCP is an interoperability boundary for AI clients/agents.
-6. Integrate upstream systems rather than reimplementing them.
-7. Local development must not require AWS.
-8. Optional infrastructure integrations must not contaminate the core API.
+1. Kubernetes remains the source of runtime truth
+2. Git is the desired-state source of truth for deployed configuration
+3. The operator is deterministic and idempotent
+4. Integrate upstream systems rather than reimplementing them
+5. Local development must not require AWS
+6. Optional infrastructure integrations must not contaminate the core API
 
-## Logical architecture
+## Logical Architecture
 
 ```text
                                  +-------------------+
@@ -48,91 +46,79 @@
                               |  +---+-------+------+--+  |
                               |      |       |      |     |
                               |      v       v      v     |
-                              | Deployment  Service  ...   |
-                              |                          |
-                              +------------+-------------+
-                                           |
-                                  metrics/traces/logs/events
-                                           |
-                         +-----------------+------------------+
-                         |                                    |
-                         v                                    v
-                  +------+-------+                      +-----+------+
-                  | Prometheus   |                      | OTel/Logs  |
-                  +------+-------+                      +-----+------+
-                         |                                    |
-                         +----------------+-------------------+
-                                          |
-                                          v
-                                  +-------+--------+
-                                  |  AI Platform   |
-                                  | (separate svc) |
-                                  +-------+--------+
-                                          |
-                              +-----------+-----------+
-                              |                       |
-                              v                       v
-                        +-----+------+          +-----+------+
-                        | MCP Server |          | LLM Provider|
-                        | tools      |          | adapter(s)  |
-                        +-----+------+          +------------+
-                              |
-                              v
-                  Claude / Cursor / other MCP hosts
+                              |  +---+---+ +---+ +-------+|
+                              |  | Deploy| |Svc | |PDB/HPA||
+                              |  +-------+ +---+ +-------+|
+                              +---------------------------+
 ```
 
-## Component boundaries
+## Components
 
-### Operator
+### Application CRD
 
-Owns:
+- Namespaced custom resource
+- Defines application intent (image, replicas, service, resources, etc.)
+- Short name: `app`
 
-- CRD lifecycle.
-- desired/observed-state reconciliation.
-- Kubernetes child resources.
-- status and conditions.
-- deterministic defaults and validation.
+### Platform Operator
 
-Must not own:
+- Go-based controller using controller-runtime
+- Reconciles Application CRs to child resources
+- Creates and manages: Deployment, Service, PDB, HPA, NetworkPolicy, KEDA, Argo Rollouts
+- Reports status through conditions and phase tracking
+- Exposes Prometheus metrics on :8443
 
-- LLM prompts.
-- model selection.
-- AI reasoning.
-- arbitrary user commands.
-- external billing databases.
+### Child Resources
 
-### AI service
+| Resource | Purpose |
+|----------|---------|
+| Deployment | Pod management and rolling updates |
+| Service | Network exposure |
+| PodDisruptionBudget | High availability during disruptions |
+| HorizontalPodAutoscaler | CPU/memory-based scaling |
+| NetworkPolicy | Traffic control |
+| KEDA ScaledObject | Event-driven scaling |
+| Argo Rollout | Canary/blue-green deployments |
 
-Owns:
+### GitOps Pipeline
 
-- model provider abstraction;
-- agent loop/orchestration;
-- context gathering through tools;
-- structured diagnosis/recommendation;
-- AI telemetry;
-- safety policy enforcement;
-- MCP server endpoints.
+```text
+GitHub → GitHub Actions → GHCR → Helm/Kustomize → Argo CD → Kubernetes
+```
 
-### MCP server
+### Observability Stack
 
-Owns:
+```text
+Operator → Prometheus metrics (:8443)
+         → Kubernetes events
+         → Structured JSON logs
+         → Grafana dashboards
+```
 
-- protocol translation;
-- tool/resource/prompt exposure;
-- explicit schemas and authorization boundaries.
+## Data Flow
 
-It should not contain business logic that belongs in the operator or observability backends.
+### Deployment Flow
 
-### Observability stack
+1. Developer pushes Application YAML to Git
+2. Argo CD syncs the manifest to Kubernetes
+3. Operator detects new/changed Application
+4. Operator creates/updates child resources
+5. Operator updates status and records events
+6. Prometheus scrapes metrics
 
-Prometheus stores time-series metrics. OpenTelemetry provides telemetry instrumentation/export. Grafana visualizes. Logs remain outside Kubernetes API storage.
+### Reconciliation Flow
 
-## Deployment topology
+```text
+Application CR
+     ↓
+Operator Reconcile
+     ↓
++----+----+----+----+----+
+|    |    |    |    |    |
+v    v    v    v    v    v
+Deploy Svc PDB HPA NetPol KEDA
+```
 
-### Local
+## Design Decisions
 
-Kind + Docker + Helm + Argo CD + Prometheus/OTel/Grafana + optional Ollama or another reachable LLM endpoint.
-
-### Optional cloud
-
-The same Helm chart should be deployable to EKS without changing the core CRD. Cloud-specific credentials/configuration must be externalized.
+See `specs/adr/` for architecture decision records.

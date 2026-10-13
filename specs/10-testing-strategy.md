@@ -1,115 +1,82 @@
 # Testing Strategy
 
-## Test pyramid
+## Test Pyramid
 
 ```text
-                 +----------------+
-                 | AI evaluations  |
-                 +-------+--------+
-                         |
-                 +-------+--------+
-                 |   Kind E2E      |
-                 +-------+--------+
-                         |
-                 +-------+--------+
-                 | envtest / integ |
-                 +-------+--------+
-                         |
-                 +-------+--------+
-                 |    unit tests   |
-                 +-----------------+
+         +----------------+
+         |   Kind E2E     |
+         +-------+--------+
+                 |
+         +-------+--------+
+         | envtest / integ |
+         +-------+--------+
+                 |
+         +-------+--------+
+         |   unit tests   |
+         +-----------------+
 ```
 
-## Operator unit tests
+## Unit Tests
 
 Test pure functions independently:
 
-- defaulting/calculation;
-- desired Deployment generation;
-- desired Service generation;
-- condition calculation;
-- error classification;
-- resource naming/labels.
+- Defaulting/calculation
+- Desired Deployment generation
+- Desired Service generation
+- Condition calculation
+- Error classification
+- Resource naming/labels
 
 ## envtest
 
 Use envtest for API/reconciler semantics without requiring a full workload cluster.
 
-Minimum scenarios:
+### Minimum Scenarios
 
-1. Application creates Deployment.
-2. Application creates Service when requested.
-3. Application status becomes progressing/ready appropriately.
-4. Spec update changes child desired state.
-5. Child deletion is recovered.
-6. Invalid spec is rejected by API validation.
+1. Application creates Deployment
+2. Application creates Service when requested
+3. Application status becomes progressing/ready appropriately
+4. Spec update changes child desired state
+5. Child deletion is recovered
+6. Invalid spec is rejected by API validation
 
 ## Kind E2E
 
-Run a real local cluster.
+Run a real local cluster with:
 
-Scenarios:
+- Operator installed via Helm
+- Example Application deployed
+- All child resources verified
+- Status and events verified
 
-1. install CRDs/operator;
-2. apply example Application;
-3. wait for Deployment readiness;
-4. verify Service;
-5. update image/replicas;
-6. simulate failure;
-7. verify recovery;
-8. uninstall/upgrade chart.
+### E2E Test Cases
 
-Future E2E scenarios:
+1. Deploy Application with all features enabled
+2. Verify Deployment, Service, PDB, HPA, NetworkPolicy created
+3. Verify status phase transitions
+4. Update Application spec and verify reconciliation
+5. Delete Application and verify cleanup
+6. Verify metrics endpoint
+7. Verify events are recorded
 
-- Argo CD sync;
-- KEDA scaling;
-- Argo Rollouts;
-- OTel/Prometheus telemetry.
+## Running Tests
 
-## Helm tests
+```bash
+# Unit tests
+go test ./...
 
-- `helm lint`;
-- `helm template`;
-- schema validation where available;
-- render expected RBAC/service account/metrics resources.
+# Integration tests (requires envtest)
+make test
 
-## AI tool contract tests
+# E2E tests (requires Kind cluster)
+make test-e2e
+```
 
-For every MCP tool:
+## Test Coverage
 
-- valid input;
-- invalid input;
-- authorization denied;
-- timeout;
-- empty result;
-- oversized result;
-- upstream failure;
-- redaction.
+Aim for:
 
-## AI evaluation tests
-
-Create a fixture dataset containing known scenarios such as:
-
-- CrashLoopBackOff with OOMKilled;
-- Pending pod due to resource shortage;
-- failed image pull;
-- rollout regression;
-- service unavailable because endpoints are absent;
-- no evidence / insufficient telemetry.
-
-The evaluator should score:
-
-- evidence usage;
-- factual consistency with fixtures;
-- correct identification of uncertainty;
-- safe recommendation;
-- tool selection efficiency;
-- refusal to perform unauthorized actions.
-
-Do not measure only textual similarity to a reference answer.
-
-## Regression policy
-
-Every production bug becomes a regression test at the lowest practical layer.
-
-Every AI safety incident becomes a deterministic evaluation case before the affected behavior is changed again.
+- 80%+ unit test coverage
+- All reconciliation paths covered
+- All error scenarios covered
+- All CRD validation paths covered

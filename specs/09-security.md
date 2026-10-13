@@ -1,92 +1,77 @@
 # Security Specification
 
-## Security model
+## Security Model
 
-The project is a platform control plane plus an AI tool surface. Treat the AI layer as an untrusted decision-maker with potentially privileged tools.
+The project is a Kubernetes platform control plane. Security focuses on RBAC, supply chain, and runtime safety.
 
 ## Kubernetes RBAC
 
-Operator permissions must be generated from the resources it actually manages. Start with the narrowest required verbs.
+Operator permissions are generated from the resources it actually manages. The operator does not receive cluster-admin.
 
-The operator should not receive cluster-admin.
+### Operator Permissions
 
-The MCP/AI service should have a separate service account from the operator.
+- Applications (CRD): full CRUD
+- Deployments, Services, PDBs, NetworkPolicies, HPAs: full CRUD
+- Events: create/patch (for recording phase transitions)
+- Secrets: not accessed by the operator
 
-Read-only AI mode should use read-only RBAC where possible.
+### ArgoCD Permissions
 
-## AI action boundary
+ArgoCD manages the operator deployment through standard Helm/Kustomize patterns.
 
-Default capability tiers:
+## Supply Chain Security
 
-```text
-Tier 0 — Public/help text
-Tier 1 — Read-only platform inspection
-Tier 2 — Proposal generation (no cluster mutation)
-Tier 3 — Human-approved Git changes
-Tier 4 — Narrow direct mutation (future, exceptional)
-Tier 5 — Destructive/autonomous mutation (not planned by default)
-```
+### Image Security
 
-The MVP stops at Tier 1/2.
+- Multi-arch images (amd64+arm64) built in CI
+- Images published to GHCR with immutable tags
+- Dockerfile uses distroless base images
+- No secrets or credentials in images
 
-## Prompt injection
+### Code Security
 
-Potential untrusted inputs:
+- GolangCI-Lint with security-focused linters
+- Dependency scanning via Dependabot/Renovate
+- No hardcoded credentials or secrets
 
-- pod logs;
-- Kubernetes events;
-- ConfigMap content;
-- annotations/labels;
-- Git commit messages and diffs;
-- application-generated HTTP payloads;
-- user input.
+## Network Security
 
-The agent must treat these as untrusted data, not instructions.
+### Network Policies
 
-## Secrets
+- Applications can opt-in to NetworkPolicy configuration through the CRD
+- Default deny-all with explicit allow rules
+- Ingress and egress can be configured separately
 
-- Never pass Kubernetes Secrets to the LLM unless a specific future feature has a reviewed requirement.
-- Never expose secret data through MCP tools.
-- Redact common credential patterns from logs and traces.
-- Credentials should be injected through environment/secret references, not committed.
+### Service Exposure
 
-## MCP authorization
+- Operator metrics endpoint can be secured with TLS
+- ServiceMonitor for Prometheus scraping (when enabled)
 
-For remote/HTTP MCP deployments, implement an explicit authentication and authorization model suitable for the deployment environment. Follow the current MCP authorization specification and platform identity model.
+## Runtime Security
 
-For local stdio use, rely on the local host's process/environment security and do not assume the network authorization flow applies.
+### Container Security
 
-## Tool security
+- Security context enforced on operator pods
+- Non-root execution where possible
+- Read-only root filesystem where supported
 
-Each tool must:
+### Resource Limits
 
-- validate input;
-- enforce namespace/resource boundaries;
-- limit result size;
-- timeout;
-- return structured errors;
-- log/audit who invoked it and what target it accessed;
-- avoid executing arbitrary commands.
+- CPU and memory limits on operator pods
+- Resource requests for guaranteed scheduling
 
-## Supply chain
+## RBAC Best Practices
 
-CI should include, as practical:
+1. **Least privilege**: Operator only gets permissions for resources it manages
+2. **No cluster-admin**: Uses namespace-scoped roles where possible
+3. **Separate service accounts**: Operator and ArgoCD use different SAs
+4. **Audit logging**: Kubernetes events provide audit trail
 
-- dependency scanning;
-- container image scanning;
-- SBOM generation;
-- provenance/signing before publishing mature releases.
+## Future Considerations
 
-Do not make signing tooling a blocker for the first local MVP if it creates significant implementation friction; add it before declaring a production-grade release.
+If AI/MCP is implemented in the future:
 
-## Network boundaries
-
-The AI service may need to reach:
-
-- Kubernetes API;
-- Prometheus;
-- Argo CD API;
-- GitHub API;
-- model provider endpoint.
-
-NetworkPolicy should default toward minimal egress/ingress once the deployment topology is stable.
+- AI service should have separate service account
+- Read-only AI mode should use read-only RBAC
+- Never pass Kubernetes Secrets to LLM
+- Treat pod logs, events, and annotations as untrusted input
